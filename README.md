@@ -95,9 +95,22 @@ roles), applies `0001 → 0009 → seed` in order, and fails on the first error.
 clean run confirms the schema builds, the seed loads (7 houses, 66 Bible books,
 announcements + house chats), and the helper functions compile.
 
-This stubbed harness validates schema + function definitions. Full RLS behaviour
-(JWT-scoped `auth.uid()`, oversight visibility) is best verified against the real
-stack via `supabase start`.
+### RLS regression suite
+
+`scripts/test-rls.sh` goes further: it builds the same stubbed DB, then switches
+to the `authenticated` role with a JWT `sub` GUC and asserts the pastoral
+guardrails (`supabase/tests/rls_test.sql`). 26 assertions cover DM/discipler
+oversight (and that oversight is read-only), pastor-cannot-see-DM, parish
+isolation, anonymized Ask-Pastor, prayer-wall house scoping, block-hides-messages,
+notification fan-out, and Bible read access. Any violation aborts non-zero.
+
+```bash
+PGPORT=55432 ./scripts/test-rls.sh
+```
+
+This validates real RLS behaviour with `auth.uid()` resolving from the JWT claim,
+so it is the fastest guard against a future migration regressing a guardrail.
+The full stack (`supabase start`) remains the final check before deploy.
 
 ## Edge functions
 
