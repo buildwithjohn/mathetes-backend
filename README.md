@@ -113,6 +113,17 @@ This validates real RLS behaviour with `auth.uid()` resolving from the JWT claim
 so it is the fastest guard against a future migration regressing a guardrail.
 The full stack (`supabase start`) remains the final check before deploy.
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request (and pushes to `main`)
+against a Postgres 16 service container, executing all three scripts:
+
+1. `scripts/test-migrations.sh` — schema + seed apply cleanly
+2. `scripts/test-rls.sh` — 26 RLS guardrail assertions
+3. `scripts/test-kjv.sh` — full KJV loads and counts are exact (31,102 verses)
+
+All three are runnable locally against any Postgres: `PGPORT=... ./scripts/<name>.sh`.
+
 ## Edge functions
 
 Four Deno functions live in `supabase/functions/` (`send-push`,
