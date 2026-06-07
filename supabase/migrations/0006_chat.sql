@@ -408,27 +408,36 @@ create policy "pinned_write" on public.pinned_messages for all
 
 -- ---------------------------------------------------------------------------
 -- Realtime: clients subscribe to messages, reactions, and membership changes.
+-- The supabase_realtime publication pre-exists on hosted Supabase (and may be
+-- owned by another role), so each step is guarded and tolerant of a permission
+-- error: if an add fails, it logs a NOTICE rather than aborting the migration
+-- (the table can then be enabled from the dashboard's Realtime page).
 -- ---------------------------------------------------------------------------
 
 do $$ begin
   if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
-    create publication supabase_realtime;
+    begin
+      create publication supabase_realtime;
+    exception when others then
+      raise notice 'realtime: could not create publication: %', sqlerrm;
+    end;
   end if;
 end $$;
 
-do $$ begin
-  if not exists (select 1 from pg_publication_tables
-                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'messages') then
-    alter publication supabase_realtime add table public.messages;
-  end if;
-  if not exists (select 1 from pg_publication_tables
-                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'message_reactions') then
-    alter publication supabase_realtime add table public.message_reactions;
-  end if;
-  if not exists (select 1 from pg_publication_tables
-                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'chat_members') then
-    alter publication supabase_realtime add table public.chat_members;
-  end if;
+do $$
+declare t text;
+begin
+  foreach t in array array['messages','message_reactions','chat_members'] loop
+    begin
+      if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+         and not exists (select 1 from pg_publication_tables
+                         where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
+        execute format('alter publication supabase_realtime add table public.%I', t);
+      end if;
+    exception when others then
+      raise notice 'realtime: could not add %: %', t, sqlerrm;
+    end;
+  end loop;
 end $$;
 
 -- ---------------------------------------------------------------------------

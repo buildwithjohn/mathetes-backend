@@ -185,10 +185,17 @@ create policy "notification_preferences_own" on public.notification_preferences 
 
 do $$ begin
   if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
-    create publication supabase_realtime;
+    begin
+      create publication supabase_realtime;
+    exception when others then raise notice 'realtime: could not create publication: %', sqlerrm;
+    end;
   end if;
-  if not exists (select 1 from pg_publication_tables
-                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'notifications') then
-    alter publication supabase_realtime add table public.notifications;
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (select 1 from pg_publication_tables
+                     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'notifications') then
+    begin
+      alter publication supabase_realtime add table public.notifications;
+    exception when others then raise notice 'realtime: could not add notifications: %', sqlerrm;
+    end;
   end if;
 end $$;
