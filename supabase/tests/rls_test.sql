@@ -235,4 +235,28 @@ begin
 end $blk$;
 reset role;
 
+-- ===========================================================================
+-- 9. ANNOUNCEMENTS: members see published only; admins see drafts; publishing
+--    notifies the parish.
+-- ===========================================================================
+select id as pastor from public.user_profiles where auth_id = '0d000000-0000-0000-0000-000000000004' \gset
+
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);
+set local role authenticated;
+insert into public.announcements (parish_id, title, status)
+  values ('00000000-0000-0000-0000-000000000001', 'Draft notice', 'draft') returning id as a_draft \gset
+insert into public.announcements (parish_id, title, body_md, status, publish_date, posted_by)
+  values ('00000000-0000-0000-0000-000000000001', 'Friday vigil', 'Join us at 6pm.', 'published', current_date, :'pastor')
+  returning id as a_pub \gset
+select public.t_assert((select count(*) = 1 from public.announcements where id = :'a_draft'), 'Announcements: admin sees own draft');
+reset role;
+
+select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);  -- Bode, member
+set local role authenticated;
+select public.t_assert((select count(*) = 1 from public.announcements where id = :'a_pub'), 'Announcements: member sees published');
+select public.t_assert((select count(*) = 0 from public.announcements where id = :'a_draft'), 'Announcements: member cannot see draft');
+reset role;
+
+select public.t_assert((select count(*) = 1 from public.notifications where type = 'announcement' and target_id = :'a_pub' and user_id = :'bode'), 'Announcements: publishing notifies a parish member');
+
 rollback;

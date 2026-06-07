@@ -19,6 +19,7 @@ Entity notes and relationships. Filled in as the schema grows.
 | 0011_verse_images.sql | verse_images |
 | 0012_bible_search_tuning.sql | search_bible phrase-substring boost |
 | 0013_storage.sql | storage buckets + storage.objects RLS (own-folder writes) |
+| 0014_announcements.sql | announcements content table + publish→notify trigger |
 
 Bible verse text: dev sample in `seed.sql`; full KJV (31,102 verses) in
 `supabase/seed/kjv.sql`, loaded via `scripts/load-kjv.sh`.

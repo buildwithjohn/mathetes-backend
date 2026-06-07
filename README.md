@@ -41,6 +41,7 @@ Copy them into the mobile and admin `.env` files.
 | `0011_verse_images.sql` | verse_images gallery; owner-only RLS |
 | `0012_bible_search_tuning.sql` | phrase-substring boost in `search_bible` so a typed phrase (e.g. "lean not unto") sorts above stop-word/stem noise |
 | `0013_storage.sql` | storage buckets (avatars, devotional-images, verse-images) + storage.objects RLS: read rules per bucket, write only your own `<auth_uid>/…` folder, devotional images admin-only |
+| `0014_announcements.sql` | announcements content table (admin-authored) with published/admin RLS and a publish→notify trigger |
 
 One migration per logical change, numbered sequentially. Never disable RLS.
 
@@ -93,7 +94,7 @@ PGPORT=5432 ./scripts/test-migrations.sh
 
 It installs minimal Supabase `auth` stubs (`supabase/tests/auth_stubs.sql`:
 `auth.users`, `auth.uid()`, and the `anon` / `authenticated` / `service_role`
-roles, plus a minimal `storage` schema), applies `0001 → 0013 → seed` in order,
+roles, plus a minimal `storage` schema), applies `0001 → 0014 → seed` in order,
 and fails on the first error. A
 clean run confirms the schema builds, the seed loads (7 houses, 66 Bible books,
 announcements + house chats), and the helper functions compile.
@@ -102,7 +103,7 @@ announcements + house chats), and the helper functions compile.
 
 `scripts/test-rls.sh` goes further: it builds the same stubbed DB, then switches
 to the `authenticated` role with a JWT `sub` GUC and asserts the pastoral
-guardrails (`supabase/tests/rls_test.sql`). 28 assertions cover DM/discipler
+guardrails (`supabase/tests/rls_test.sql`). 32 assertions cover DM/discipler
 oversight (and that oversight is read-only), pastor-cannot-see-DM, parish
 isolation, anonymized Ask-Pastor, prayer-wall house scoping, block-hides-messages,
 notification fan-out, and Bible read access. Any violation aborts non-zero.
@@ -121,7 +122,7 @@ The full stack (`supabase start`) remains the final check before deploy.
 against a Postgres 16 service container, executing all three scripts:
 
 1. `scripts/test-migrations.sh` — schema + seed apply cleanly
-2. `scripts/test-rls.sh` — 28 RLS guardrail assertions
+2. `scripts/test-rls.sh` — 32 RLS guardrail assertions
 3. `scripts/test-kjv.sh` — full KJV loads and counts are exact (31,102 verses)
 
 All three are runnable locally against any Postgres: `PGPORT=... ./scripts/<name>.sh`.
