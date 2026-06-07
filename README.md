@@ -37,6 +37,8 @@ Copy them into the mobile and admin `.env` files.
 | `0007_prayer_wall.sql` | prayer_requests, prayer_pray, prayer_reactions; house/parish-scoped RLS with house-leader visibility |
 | `0008_ask_pastor.sql` | ask_questions queue; `answer_question` RPC; anonymized `public_qa` view (security-definer) |
 | `0009_safety.sql` | blocks, reports, moderation_log; restrictive policy so a block hides the blocked user's messages |
+| `0010_notifications.sql` | push_tokens, notifications, notification_preferences; triggers that create notifications on new messages/announcements and answered questions; realtime on notifications |
+| `0011_verse_images.sql` | verse_images gallery; owner-only RLS |
 
 One migration per logical change, numbered sequentially. Never disable RLS.
 
@@ -96,6 +98,13 @@ announcements + house chats), and the helper functions compile.
 This stubbed harness validates schema + function definitions. Full RLS behaviour
 (JWT-scoped `auth.uid()`, oversight visibility) is best verified against the real
 stack via `supabase start`.
+
+## Edge functions
+
+Four Deno functions live in `supabase/functions/` (`send-push`,
+`moderate-message`, `daily-content-publish`, `archive-term`). Two are wired to
+Database Webhooks and two to a schedule; see `supabase/functions/README.md` for
+triggers, secrets, and deploy steps.
 
 ## Bible data
 

@@ -15,6 +15,8 @@ Entity notes and relationships. Filled in as the schema grows.
 | 0007_prayer_wall.sql | prayer_requests, prayer_pray, prayer_reactions |
 | 0008_ask_pastor.sql | ask_questions, answer_question, public_qa view |
 | 0009_safety.sql | blocks, reports, moderation_log |
+| 0010_notifications.sql | push_tokens, notifications, notification_preferences, message/answer notify triggers |
+| 0011_verse_images.sql | verse_images |
 
 ## Identity & structure
 
@@ -134,3 +136,29 @@ messages ──< moderation_log
 - `reports` are filed by members, read/resolved by parish admins.
 - `moderation_log` is written by the `moderate-message` edge function (service
   role) and read by parish admins.
+
+## Notifications
+
+```
+user_profiles 1 ──< push_tokens
+user_profiles 1 ──< notifications
+user_profiles 1 ──< notification_preferences
+```
+
+- In-app `notifications` rows are created by SECURITY DEFINER triggers
+  (`notify_on_message`, `notify_on_answer`) and the `daily-content-publish` job,
+  never directly by a member. Owners read/mark-read/delete their own.
+- `notify_on_message` fans out to other chat members (skipping the author and
+  muted members); for the announcements channel it fans out to the whole parish.
+- The `send-push` edge function turns a new notification row into an Expo push,
+  consulting the per-type `push` preference. `notifications` is published to
+  realtime for the live bell.
+
+## Verse images
+
+```
+user_profiles 1 ──< verse_images
+```
+
+- A private gallery row per generated image (theme, aspect_ratio, watermark,
+  url). Images themselves live in the public `verse-images` storage bucket.

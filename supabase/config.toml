@@ -76,3 +76,19 @@ secret = ""
 enabled = true
 policy = "oneshot"
 inspector_port = 8083
+
+# Edge functions. These are invoked by Database Webhooks (send-push,
+# moderate-message) or by the scheduler (daily-content-publish, archive-term),
+# not by end-user JWTs, so JWT verification is disabled. They authenticate to
+# Postgres with the service-role key from their environment.
+[functions.send-push]
+verify_jwt = false
+
+[functions.moderate-message]
+verify_jwt = false
+
+[functions.daily-content-publish]
+verify_jwt = false
+
+[functions.archive-term]
+verify_jwt = false
