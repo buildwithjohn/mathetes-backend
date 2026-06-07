@@ -55,3 +55,40 @@ values (
   'published'
 )
 on conflict (parish_id, publish_date) where publish_date is not null do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Bible sample (real KJV). The full 66-book / 31,102-verse KJV import is a
+-- large data file loaded separately (see README); this curated sample is
+-- enough to exercise search_bible / parse_reference / get_chapter in dev.
+-- ---------------------------------------------------------------------------
+
+-- Chapters (verse_count is maintained by trigger as verses are inserted).
+insert into public.bible_chapters (book_id, number)
+select b.id, c.num
+from (values ('Ps', 23), ('Prov', 3), ('John', 3)) as c(abbrev, num)
+join public.bible_books b on b.abbrev = c.abbrev
+join public.bible_versions v on v.id = b.version_id and v.code = 'KJV'
+on conflict (book_id, number) do nothing;
+
+-- Verses.
+with ch as (
+  select c.id, b.abbrev, c.number
+  from public.bible_chapters c
+  join public.bible_books b on b.id = c.book_id
+  join public.bible_versions v on v.id = b.version_id and v.code = 'KJV'
+)
+insert into public.bible_verses (chapter_id, number, text)
+select ch.id, d.num, d.text
+from (values
+  ('Ps', 23, 1, 'The LORD is my shepherd; I shall not want.'),
+  ('Ps', 23, 2, 'He maketh me to lie down in green pastures: he leadeth me beside the still waters.'),
+  ('Ps', 23, 3, 'He restoreth my soul: he leadeth me in the paths of righteousness for his name''s sake.'),
+  ('Ps', 23, 4, 'Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me.'),
+  ('Ps', 23, 5, 'Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over.'),
+  ('Ps', 23, 6, 'Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the LORD for ever.'),
+  ('Prov', 3, 5, 'Trust in the LORD with all thine heart; and lean not unto thine own understanding.'),
+  ('Prov', 3, 6, 'In all thy ways acknowledge him, and he shall direct thy paths.'),
+  ('John', 3, 16, 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.')
+) as d(abbrev, chap, num, text)
+join ch on ch.abbrev = d.abbrev and ch.number = d.chap
+on conflict (chapter_id, number) do nothing;
