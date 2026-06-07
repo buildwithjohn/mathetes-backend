@@ -39,6 +39,7 @@ Copy them into the mobile and admin `.env` files.
 | `0009_safety.sql` | blocks, reports, moderation_log; restrictive policy so a block hides the blocked user's messages |
 | `0010_notifications.sql` | push_tokens, notifications, notification_preferences; triggers that create notifications on new messages/announcements and answered questions; realtime on notifications |
 | `0011_verse_images.sql` | verse_images gallery; owner-only RLS |
+| `0012_bible_search_tuning.sql` | phrase-substring boost in `search_bible` so a typed phrase (e.g. "lean not unto") sorts above stop-word/stem noise |
 
 One migration per logical change, numbered sequentially. Never disable RLS.
 
@@ -122,10 +123,20 @@ triggers, secrets, and deploy steps.
 ## Bible data
 
 `0003_bible.sql` seeds the KJV version row and all 66 book rows (order,
-testament, abbreviation). Chapters and verse text are loaded separately: the dev
-`seed.sql` includes a small, real-KJV sample (Psalm 23, Proverbs 3:5-6, John
-3:16) sufficient to exercise `search_bible` / `get_chapter` / `parse_reference`.
-The full 1,189-chapter / 31,102-verse import is a large data file (public-domain
-source such as scrollmapper/bible_databases) loaded once into `bible_chapters` /
-`bible_verses`; the `search_vector` and `verse_count` are maintained by triggers
-on insert.
+testament, abbreviation). Verse text is loaded separately so `supabase db reset`
+stays fast: the dev `seed.sql` carries a tiny real-KJV sample (Psalm 23,
+Proverbs 3:5-6, John 3:16).
+
+The **full KJV** (1,189 chapters / 31,102 verses, public domain, from
+scrollmapper/bible_databases) lives in `supabase/seed/kjv.sql`. Load it once
+after a reset:
+
+```bash
+PGPORT=54322 ./scripts/load-kjv.sh        # or: psql ... -f supabase/seed/kjv.sql
+```
+
+It bulk-loads via a temp staging table + `COPY` (a couple of seconds), disabling
+the per-row `verse_count` trigger during load and recomputing counts in one pass;
+`search_vector` is maintained by its `BEFORE` trigger throughout. The load is
+idempotent (`ON CONFLICT DO NOTHING`) and joins onto the seeded books by
+canonical `book_order`, so it coexists with the dev sample.

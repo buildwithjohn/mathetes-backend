@@ -17,6 +17,10 @@ Entity notes and relationships. Filled in as the schema grows.
 | 0009_safety.sql | blocks, reports, moderation_log |
 | 0010_notifications.sql | push_tokens, notifications, notification_preferences, message/answer notify triggers |
 | 0011_verse_images.sql | verse_images |
+| 0012_bible_search_tuning.sql | search_bible phrase-substring boost |
+
+Bible verse text: dev sample in `seed.sql`; full KJV (31,102 verses) in
+`supabase/seed/kjv.sql`, loaded via `scripts/load-kjv.sh`.
 
 ## Identity & structure
 
