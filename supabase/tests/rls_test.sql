@@ -217,4 +217,22 @@ select public.t_assert((select count(*) = 66 from public.bible_books), 'Bible: r
 select public.t_assert((select reference = 'Proverbs 3:5' from public.search_bible('lean not unto', 'KJV') limit 1), 'Bible: search finds Proverbs 3:5');
 reset role;
 
+-- ===========================================================================
+-- 8. STORAGE: you may write only your own avatar folder
+-- ===========================================================================
+select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true);
+set local role authenticated;
+insert into storage.objects (bucket_id, name) values ('avatars', '0a000000-0000-0000-0000-000000000001/me.png');
+select public.t_assert((select count(*) = 1 from storage.objects where bucket_id = 'avatars' and name like '0a000000%'), 'Storage: user can upload to own avatar folder');
+do $blk$
+begin
+  begin
+    insert into storage.objects (bucket_id, name) values ('avatars', '0b000000-0000-0000-0000-000000000002/evil.png');
+    perform public.t_assert(false, 'Storage: writing another user''s folder must be blocked');
+  exception when insufficient_privilege or check_violation then
+    perform public.t_assert(true, 'Storage: writing another user''s folder is blocked');
+  end;
+end $blk$;
+reset role;
+
 rollback;
