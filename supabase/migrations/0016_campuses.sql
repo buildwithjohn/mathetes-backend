@@ -34,10 +34,12 @@ create index if not exists idx_user_profiles_campus on public.user_profiles (cam
 
 alter table public.campuses enable row level security;
 
+drop policy if exists "campuses_select_parish" on public.campuses;
 create policy "campuses_select_parish" on public.campuses for select
   to authenticated
   using (parish_id = public.current_parish_id());
 
+drop policy if exists "campuses_admin_write" on public.campuses;
 create policy "campuses_admin_write" on public.campuses for all
   to authenticated
   using (public.is_parish_admin() and parish_id = public.current_parish_id())
