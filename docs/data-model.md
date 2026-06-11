@@ -21,6 +21,7 @@ Entity notes and relationships. Filled in as the schema grows.
 | 0013_storage.sql | storage buckets + storage.objects RLS (own-folder writes) |
 | 0014_announcements.sql | announcements content table + publish→notify trigger |
 | 0015_chat_media.sql | chat-media storage bucket (+ avatars made public) |
+| 0016_campuses.sql | campuses table + user_profiles.campus_id (FUOYE Oye + Ikole) |
 
 Bible verse text: dev sample in `seed.sql`; full KJV (31,102 verses) in
 `supabase/seed/kjv.sql`, loaded via `scripts/load-kjv.sh`.
