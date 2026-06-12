@@ -23,6 +23,7 @@ Entity notes and relationships. Filled in as the schema grows.
 | 0015_chat_media.sql | chat-media storage bucket (+ avatars made public) |
 | 0016_campuses.sql | campuses table + user_profiles.campus_id (FUOYE Oye + Ikole) |
 | 0017_parish_chat.sql | parish_group chat kind (parish-wide general room) |
+| 0018_campus_houses.sql | houses.campus_id (Oye + Ikole houses), user_profiles date_of_birth/phone |
 
 Bible verse text: dev sample in `seed.sql`; full KJV (31,102 verses) in
 `supabase/seed/kjv.sql`, loaded via `scripts/load-kjv.sh`.
