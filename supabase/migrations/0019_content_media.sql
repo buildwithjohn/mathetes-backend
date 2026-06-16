@@ -1,4 +1,4 @@
--- 0017_content_media.sql
+-- 0019_content_media.sql
 -- Audio/video narration for devotionals. `audio_url` already exists (0002);
 -- this adds `video_url` and a `content-media` storage bucket so the admin can
 -- host audio/video alongside external links. Public read (served by URL); only
