@@ -316,4 +316,57 @@ exception when others then
 end $b1$;
 reset role;
 
+-- ===========================================================================
+-- 11. READING PLANS (V2.0) — privacy + discipler-share guardrails
+-- ===========================================================================
+-- Fixtures (as table owner): a published + an unpublished CCCFSP plan, a
+-- published OTHER-parish plan, and two days on the published CCCFSP plan.
+reset role;
+insert into public.reading_plans (id, parish_id, slug, title, description, length_days, difficulty, published, published_at) values
+  ('00000000-0000-0000-0000-0000000d0a01', '00000000-0000-0000-0000-000000000001', 'rp-pub',   'Pub Plan',   'd', 2, 'starter', true,  now()),
+  ('00000000-0000-0000-0000-0000000d0a02', '00000000-0000-0000-0000-000000000001', 'rp-unpub', 'Unpub Plan', 'd', 2, 'starter', false, null),
+  ('00000000-0000-0000-0000-0000000d0a03', '00000000-0000-0000-0000-0000000000ff', 'rp-other', 'Other Plan', 'd', 2, 'starter', true,  now());
+insert into public.reading_plan_days (id, plan_id, day_number, title, scripture_reference, reflection_body, reflection_prompt) values
+  ('00000000-0000-0000-0000-0000000d0b01', '00000000-0000-0000-0000-0000000d0a01', 1, 'D1', 'John 1', 'body', 'prompt'),
+  ('00000000-0000-0000-0000-0000000d0b02', '00000000-0000-0000-0000-0000000d0a01', 2, 'D2', 'John 2', 'body', 'prompt');
+
+-- Ada subscribes and completes day 1 (shared with discipler) + day 2 (private).
+select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true);
+set local role authenticated;
+select public.subscribe_to_plan('00000000-0000-0000-0000-0000000d0a01') as rp_sub \gset
+select public.complete_plan_day('00000000-0000-0000-0000-0000000d0b01', 'my shared reflection', true);
+select public.complete_plan_day('00000000-0000-0000-0000-0000000d0b02', 'my private reflection', false);
+reset role;
+
+-- 1. Unpublished plan invisible to a parish member (Bode).
+select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);
+set local role authenticated;
+select public.t_assert((select count(*) = 0 from public.reading_plans where id = '00000000-0000-0000-0000-0000000d0a02'), 'RP1: unpublished plan invisible to members');
+-- 3. A member cannot see another user's subscription.
+select public.t_assert((select count(*) = 0 from public.reading_plan_subscriptions where id = :'rp_sub'), 'RP3: member cannot see another user''s subscription');
+reset role;
+
+-- 2. Published plan of ANOTHER parish invisible to a CCCFSP member (Ada).
+select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true);
+set local role authenticated;
+select public.t_assert((select count(*) = 0 from public.reading_plans where id = '00000000-0000-0000-0000-0000000d0a03'), 'RP2: other-parish published plan invisible');
+-- 4. A user CAN see their own subscription.
+select public.t_assert((select count(*) = 1 from public.reading_plan_subscriptions where id = :'rp_sub'), 'RP4: user sees own subscription');
+-- 8. subscribe_to_plan is idempotent.
+select public.t_assert(public.subscribe_to_plan('00000000-0000-0000-0000-0000000d0a01') = :'rp_sub', 'RP8: subscribe_to_plan is idempotent');
+reset role;
+
+-- 5/6. Discipler (Disc) sees the SHARED reflection but not the private one.
+select set_config('request.jwt.claim.sub', '0e000000-0000-0000-0000-000000000005', true);
+set local role authenticated;
+select public.t_assert((select count(*) = 1 from public.reading_plan_progress where subscription_id = :'rp_sub' and day_id = '00000000-0000-0000-0000-0000000d0b01'), 'RP5: discipler sees shared reflection');
+select public.t_assert((select count(*) = 0 from public.reading_plan_progress where subscription_id = :'rp_sub' and day_id = '00000000-0000-0000-0000-0000000d0b02'), 'RP6: discipler cannot see unshared reflection');
+reset role;
+
+-- 7. House leader (Tope, Berea leader) cannot see ANY reading-plan progress.
+select set_config('request.jwt.claim.sub', '0c000000-0000-0000-0000-000000000003', true);
+set local role authenticated;
+select public.t_assert((select count(*) = 0 from public.reading_plan_progress where subscription_id = :'rp_sub'), 'RP7: house leader cannot see reading-plan progress');
+reset role;
+
 rollback;

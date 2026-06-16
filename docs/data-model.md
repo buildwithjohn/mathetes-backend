@@ -208,3 +208,35 @@ alter publication supabase_realtime add table public.notifications;
 
 Without these, the mobile app's live chat and notification bell fall back to
 manual refresh (data is correct, just not pushed in real time).
+
+## Reading plans (V2.0)
+
+```
+parishes 1 ──< reading_plans 1 ──< reading_plan_days
+user_profiles 1 ──< reading_plan_subscriptions >── reading_plans
+reading_plan_subscriptions 1 ──< reading_plan_progress >── reading_plan_days
+```
+
+- A **reading_plan** is a parish-authored, multi-day scripture + reflection
+  journey (`length_days` 1–365, `difficulty` starter/intermediate/deep,
+  `sequence_locked`, `published`). Admin-authored only; members read only
+  `published` plans in their parish.
+- **reading_plan_days** carry the day's passage, reflection body, and prompt
+  (optionally linked to a `devotional`). Visible when the parent plan is
+  published in the member's parish (admins see drafts too).
+- **reading_plan_subscriptions** are per (user, plan): `current_day`, `paused`
+  (pastoral grace — a first-class state), `streak_enabled` (opt-in, default
+  off), `completed_at`. Owner-managed; admins may see that a subscription
+  exists (support/analytics) but never the reflections.
+- **reading_plan_progress** records per-day completion + the user's
+  `reflection_response`. **Reflections are private by default.** A row may be
+  shared with the subscriber's **discipler** (and only the discipler) via
+  `share_with_discipler`; there is no policy path for a house leader or
+  pastor/admin to read reflections, and no public completion data or
+  leaderboards.
+
+RPCs: `subscribe_to_plan(plan)` (idempotent; refuses unpublished/out-of-parish),
+`complete_plan_day(day, reflection?, share?)` (records progress, advances the
+subscription, completes on the last day), `toggle_plan_pause(subscription)`.
+Discipler visibility is enforced via SECURITY DEFINER helpers
+`owns_plan_subscription` / `is_discipler_for_subscription`.

@@ -163,3 +163,39 @@ The project owner — **John (akinolajohnayomide@gmail.com, GitHub `buildwithjoh
 — authorizes all of the work, merges, deployments, and decisions described
 above, including the cross-repo (mobile + admin) changes that fell outside the
 original backend-only task scope, and the B1 guardrail strengthening in §4.
+
+---
+
+## 8. Launch-prep (2026-06-16) + V2.0 reading plans
+
+**Environment blockers (unchanged):** the agent sandbox still only allows HTTPS,
+so the cloud DB (STEP 1/2/3/5 queries), `supabase functions deploy` (STEP 4),
+and secret rotation in dashboards (STEP 6) are **operator-run**. Artifacts/commands
+prepared below; results to be filled in by whoever runs them.
+
+- **STEP 1/2 (migrations):** run the `schema_migrations` query; apply any missing
+  of `0019_content_media`, `0020_cross_gender_dm`, `0021_cross_house_dm`, and now
+  `0022_reading_plans` (all idempotent, append-only).
+- **STEP 3 (realtime):** verify/enable per `docs/data-model.md` §Realtime.
+- **STEP 4 (edge functions):** deploy the 4 functions; secrets `OPENAI_API_KEY`
+  (moderate-message), `EXPO_ACCESS_TOKEN` (send-push), service role (publish/
+  archive); cron `daily-content-publish` 06:30 Africa/Lagos, `archive-term`
+  weekly; webhook `moderate-message` on `INSERT` to `public.messages`.
+- **STEP 5 (legacy DM audit) — PREPARED + tested locally:**
+  `scripts/legacy_dm_audit.sql`. Repairs null-house DMs whose two participants
+  share one house (sets `chats.house_id`); archives the rest (`archived_at = now()`)
+  and notifies both members. Verified on a scratch DB: same-house DM repaired,
+  cross-house DM archived + 2 notifications. ⚠️ `chats.archived_at` does not exist
+  in the migrations — the script adds it idempotently; **formalize it in a
+  follow-up migration (e.g. 0023_chats_archived_at) so repo and prod stay in
+  sync.** Run the audit query first, review counts, then COMMIT.
+- **STEP 6 (secrets):** rotate Supabase service role, Resend SMTP, OpenAI keys
+  (and the DB password + GitHub PAT exposed in chat); update Vercel, EAS, and
+  edge-function secrets.
+
+**V2.0 reading plans (STEP 8–16): DONE in-repo.** Migration
+`supabase/migrations/0022_reading_plans.sql` (4 tables, RLS, 3 RPCs), seed
+("First 30 Days of Following Jesus", 30 placeholder days), 8 RLS assertions
+(suite now 44, all green), canonical types regenerated, `docs/data-model.md`
+§Reading plans added. Guardrails enforced: reflections private; discipler-only
+opt-in sharing; no pastor/house-leader/admin path to reflections; no leaderboards.

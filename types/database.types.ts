@@ -852,6 +852,168 @@ export interface Database {
         };
         Relationships: [];
       };
+      reading_plan_days: {
+        Row: {
+          id: string;
+          plan_id: string;
+          day_number: number;
+          title: string;
+          scripture_reference: string;
+          scripture_text: string | null;
+          reflection_body: string;
+          reflection_prompt: string;
+          audio_url: string | null;
+          devotional_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          day_number: number;
+          title: string;
+          scripture_reference: string;
+          scripture_text?: string | null;
+          reflection_body: string;
+          reflection_prompt: string;
+          audio_url?: string | null;
+          devotional_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          plan_id?: string;
+          day_number?: number;
+          title?: string;
+          scripture_reference?: string;
+          scripture_text?: string | null;
+          reflection_body?: string;
+          reflection_prompt?: string;
+          audio_url?: string | null;
+          devotional_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      reading_plan_progress: {
+        Row: {
+          id: string;
+          subscription_id: string;
+          day_id: string;
+          completed_at: string;
+          reflection_response: string | null;
+          share_with_discipler: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          subscription_id: string;
+          day_id: string;
+          completed_at?: string;
+          reflection_response?: string | null;
+          share_with_discipler?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          subscription_id?: string;
+          day_id?: string;
+          completed_at?: string;
+          reflection_response?: string | null;
+          share_with_discipler?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      reading_plan_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          plan_id: string;
+          started_at: string;
+          current_day: number;
+          last_activity_at: string;
+          completed_at: string | null;
+          paused: boolean;
+          streak_enabled: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plan_id: string;
+          started_at?: string;
+          current_day?: number;
+          last_activity_at?: string;
+          completed_at?: string | null;
+          paused?: boolean;
+          streak_enabled?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          plan_id?: string;
+          started_at?: string;
+          current_day?: number;
+          last_activity_at?: string;
+          completed_at?: string | null;
+          paused?: boolean;
+          streak_enabled?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      reading_plans: {
+        Row: {
+          id: string;
+          parish_id: string;
+          slug: string;
+          title: string;
+          description: string;
+          cover_image_url: string | null;
+          length_days: number;
+          difficulty: string | null;
+          author_id: string | null;
+          sequence_locked: boolean;
+          published: boolean;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          parish_id: string;
+          slug: string;
+          title: string;
+          description: string;
+          cover_image_url?: string | null;
+          length_days: number;
+          difficulty?: string | null;
+          author_id?: string | null;
+          sequence_locked?: boolean;
+          published?: boolean;
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          parish_id?: string;
+          slug?: string;
+          title?: string;
+          description?: string;
+          cover_image_url?: string | null;
+          length_days?: number;
+          difficulty?: string | null;
+          author_id?: string | null;
+          sequence_locked?: boolean;
+          published?: boolean;
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       reading_position: {
         Row: {
           user_id: string;
@@ -1222,7 +1384,6 @@ export interface Database {
       };
     };
     Functions: {
-      // Identity / RLS helpers
       current_profile_id: { Args: Record<string, never>; Returns: string };
       current_parish_id: { Args: Record<string, never>; Returns: string };
       current_house_id: { Args: Record<string, never>; Returns: string };
@@ -1233,31 +1394,30 @@ export interface Database {
       is_chat_leader: { Args: { p_chat: string }; Returns: boolean };
       can_read_chat: { Args: { p_chat: string }; Returns: boolean };
       can_post_chat: { Args: { p_chat: string }; Returns: boolean };
-      // Chat
       create_dm: { Args: { p_other: string }; Returns: string };
-      // Engagement
       record_check_in: { Args: Record<string, never>; Returns: Database["public"]["Tables"]["streaks"]["Row"] };
-      // Ask Pastor
       answer_question: {
         Args: { p_id: string; p_response: string; p_public?: boolean };
         Returns: Database["public"]["Tables"]["ask_questions"]["Row"];
       };
-      // Bible
-      get_chapter: {
-        Args: { version_code: string; book_abbrev: string; chapter_number: number };
-        Returns: Json;
-      };
+      get_chapter: { Args: { version_code: string; book_abbrev: string; chapter_number: number }; Returns: Json };
       search_bible: {
         Args: { query: string; version_code?: string; max_results?: number };
-        Returns: {
-          verse_id: string; reference: string; book_name: string;
-          chapter: number; verse: number; text: string; rank: number;
-        }[];
+        Returns: { verse_id: string; reference: string; book_name: string; chapter: number; verse: number; text: string; rank: number }[];
       };
       parse_reference: {
         Args: { ref: string; version_code?: string };
         Returns: { book_id: string; book_name: string; chapter: number; verse: number }[];
       };
+      // Reading plans (V2.0)
+      owns_plan_subscription: { Args: { p_sub: string }; Returns: boolean };
+      is_discipler_for_subscription: { Args: { p_sub: string }; Returns: boolean };
+      subscribe_to_plan: { Args: { p_plan_id: string }; Returns: string };
+      complete_plan_day: {
+        Args: { p_day_id: string; p_reflection_response?: string; p_share_with_discipler?: boolean };
+        Returns: string;
+      };
+      toggle_plan_pause: { Args: { p_subscription_id: string }; Returns: boolean };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
