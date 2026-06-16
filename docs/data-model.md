@@ -172,3 +172,39 @@ user_profiles 1 ──< verse_images
 
 - A private gallery row per generated image (theme, aspect_ratio, watermark,
   url). Images themselves live in the public `verse-images` storage bucket.
+
+## Realtime publication (Finding B4)
+
+Chat and notifications rely on the `supabase_realtime` publication including
+`public.messages`, `public.message_reactions`, `public.chat_members`, and
+`public.notifications`. Migrations 0006 and 0010 add these, but the `ALTER
+PUBLICATION` is wrapped in a tolerant block: on hosted Supabase the publication
+is owned by another role, so a permission error is swallowed with a NOTICE
+rather than aborting the migration. That means on cloud the tables may silently
+not get added.
+
+**Verify (run against the cloud DB):**
+
+```sql
+select schemaname, tablename
+from pg_publication_tables
+where pubname = 'supabase_realtime'
+order by tablename;
+```
+
+Expected: `messages`, `message_reactions`, `chat_members`, `notifications`
+(all in `public`).
+
+**Manual fix if any are missing:** Supabase Dashboard → **Database →
+Replication** → the `supabase_realtime` publication → enable the missing
+table(s). Equivalent SQL (run as the publication owner / via the dashboard):
+
+```sql
+alter publication supabase_realtime add table public.messages;
+alter publication supabase_realtime add table public.message_reactions;
+alter publication supabase_realtime add table public.chat_members;
+alter publication supabase_realtime add table public.notifications;
+```
+
+Without these, the mobile app's live chat and notification bell fall back to
+manual refresh (data is correct, just not pushed in real time).
