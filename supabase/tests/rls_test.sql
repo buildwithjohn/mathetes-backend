@@ -142,7 +142,9 @@ reset role;
 -- ===========================================================================
 select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true);
 set local role authenticated;
-select public.t_assert((select count(*) = 7 from public.houses), 'Isolation: CCCFSP member sees 7 houses');
+-- Since 0018 (per-campus houses) the pilot parish has 14 houses (7 Oye + 7 Ikole).
+-- House RLS stays parish-wide; the app filters by campus client-side.
+select public.t_assert((select count(*) = 14 from public.houses), 'Isolation: CCCFSP member sees 14 houses (7 per campus)');
 reset role;
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000007', true);
 set local role authenticated;
