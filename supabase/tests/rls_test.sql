@@ -64,6 +64,22 @@ update public.user_profiles set role = 'pastor' where auth_id = '0d000000-0000-0
 update public.user_profiles set parish_id = '00000000-0000-0000-0000-0000000000ff', house_id = null
   where auth_id = '10000000-0000-0000-0000-000000000007';
 
+-- DM-guardrail fixtures (Findings B1/B2): two male + two female house-mates in
+-- ZION (kept out of Berea so they don't perturb the Berea notification fan-out
+-- assertion). Ms Two (f2) opts out of cross-gender approval; others keep default.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('0d111111-0000-0000-0000-000000000001', 'm1@x', '{"name":"Mr One"}'),
+  ('0d111111-0000-0000-0000-000000000002', 'm2@x', '{"name":"Mr Two"}'),
+  ('0d111111-0000-0000-0000-000000000003', 'f1@x', '{"name":"Ms One"}'),
+  ('0d111111-0000-0000-0000-000000000004', 'f2@x', '{"name":"Ms Two"}');
+update public.user_profiles
+  set house_id = (select id from public.houses where slug = 'zion'),
+      gender = case when auth_id in ('0d111111-0000-0000-0000-000000000001','0d111111-0000-0000-0000-000000000002')
+                    then 'male' else 'female' end
+  where auth_id::text like '0d111111-%';
+update public.user_privacy set cross_gender_dm_approval = false
+  where user_id = (select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000004');
+
 -- Profile ids for convenience.
 select id as ada  from public.user_profiles where auth_id = '0a000000-0000-0000-0000-000000000001' \gset
 select id as bode from public.user_profiles where auth_id = '0b000000-0000-0000-0000-000000000002' \gset
@@ -260,5 +276,44 @@ select public.t_assert((select count(*) = 0 from public.announcements where id =
 reset role;
 
 select public.t_assert((select count(*) = 1 from public.notifications where type = 'announcement' and target_id = :'a_pub' and user_id = :'bode'), 'Announcements: publishing notifies a parish member');
+
+-- ===========================================================================
+-- 10. DM ACCOUNTABILITY (Finding B2 cross-gender, Finding B1 cross-house)
+-- ===========================================================================
+select set_config('request.jwt.claim.sub', '0d111111-0000-0000-0000-000000000001', true);  -- Mr One (male, Berea)
+set local role authenticated;
+
+-- B2: same-gender house-mate DM succeeds, no approval needed.
+select public.t_assert(
+  public.create_dm((select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000002')) is not null,
+  'B2: same-gender house-mate DM succeeds');
+
+-- B2: cross-gender DM to a recipient who opted OUT of approval succeeds.
+select public.t_assert(
+  public.create_dm((select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000004')) is not null,
+  'B2: cross-gender DM to opted-out recipient succeeds');
+
+-- B2: cross-gender DM to a recipient who requires approval is blocked.
+do $b2$
+declare v uuid;
+begin
+  v := public.create_dm((select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000003'));
+  perform public.t_assert(false, 'B2 gate: expected a block, but the DM was created');
+exception when others then
+  perform public.t_assert(sqlerrm like '%cross-gender DM requires recipient approval%',
+    'B2: cross-gender DM (approval required) is blocked');
+end $b2$;
+
+-- B1: cross-house DM is blocked (Mr One in Berea -> Bethel One in Bethel).
+do $b1$
+declare v uuid;
+begin
+  v := public.create_dm((select id from public.user_profiles where auth_id = '0f000000-0000-0000-0000-000000000006'));
+  perform public.t_assert(false, 'B1 gate: expected a block, but the DM was created');
+exception when others then
+  perform public.t_assert(sqlerrm like '%cross-house DM blocked%',
+    'B1: cross-house DM is blocked (no shared house leader)');
+end $b1$;
+reset role;
 
 rollback;
