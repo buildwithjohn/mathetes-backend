@@ -44,3 +44,15 @@ These hooks live outside the migration chain on purpose: they depend on
 `pg_net` / `pg_cron` and platform config, so they are configured per environment
 rather than baked into a migration (which keeps the schema portable and the
 stub-based smoke test green).
+
+## Giving (V2.1, Paystack)
+
+| Function | Trigger | What it does |
+|----------|---------|--------------|
+| `paystack-initialize` | User call (JWT) | Validates fund/amount, creates a PENDING donation (one-time) or recurring mandate + Paystack plan, calls Paystack `/transaction/initialize`, returns `authorization_url` |
+| `paystack-webhook` | Paystack webhook (no JWT) | Verifies `x-paystack-signature` (HMAC-SHA512), logs every event, records `charge.success` / `subscription.create` / `invoice.payment_failed` / `subscription.disable` idempotently |
+
+Secrets: `PAYSTACK_SECRET_KEY` (both), plus the standard `SUPABASE_URL` /
+`SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY`. In the **Paystack dashboard**,
+set the webhook URL to the deployed `paystack-webhook` function URL. The client
+holds only the Paystack **public** key + the returned checkout URL.

@@ -92,3 +92,11 @@ verify_jwt = false
 
 [functions.archive-term]
 verify_jwt = false
+
+# Giving (V2.1) — Paystack. initialize is user-called (JWT); webhook is called by
+# Paystack and verifies the x-paystack-signature itself, so no JWT.
+[functions.paystack-initialize]
+verify_jwt = true
+
+[functions.paystack-webhook]
+verify_jwt = false

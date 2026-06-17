@@ -435,6 +435,69 @@ export interface Database {
         };
         Relationships: [];
       };
+      donations: {
+        Row: {
+          id: string;
+          parish_id: string;
+          user_id: string;
+          fund_id: string | null;
+          recurring_id: string | null;
+          amount_kobo: number;
+          fees_kobo: number | null;
+          currency: string;
+          kind: string;
+          status: string;
+          reference: string;
+          paystack_reference: string | null;
+          channel: string | null;
+          anonymous: boolean;
+          note: string | null;
+          paid_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          parish_id: string;
+          user_id: string;
+          fund_id?: string | null;
+          recurring_id?: string | null;
+          amount_kobo: number;
+          fees_kobo?: number | null;
+          currency?: string;
+          kind?: string;
+          status?: string;
+          reference?: string;
+          paystack_reference?: string | null;
+          channel?: string | null;
+          anonymous?: boolean;
+          note?: string | null;
+          paid_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          parish_id?: string;
+          user_id?: string;
+          fund_id?: string | null;
+          recurring_id?: string | null;
+          amount_kobo?: number;
+          fees_kobo?: number | null;
+          currency?: string;
+          kind?: string;
+          status?: string;
+          reference?: string;
+          paystack_reference?: string | null;
+          channel?: string | null;
+          anonymous?: boolean;
+          note?: string | null;
+          paid_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       engagement_events: {
         Row: {
           id: string;
@@ -456,6 +519,108 @@ export interface Database {
           event_type?: string;
           target_id?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      giving_funds: {
+        Row: {
+          id: string;
+          parish_id: string;
+          slug: string;
+          name: string;
+          description: string | null;
+          active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          parish_id: string;
+          slug: string;
+          name: string;
+          description?: string | null;
+          active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          parish_id?: string;
+          slug?: string;
+          name?: string;
+          description?: string | null;
+          active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      giving_recurring: {
+        Row: {
+          id: string;
+          parish_id: string;
+          user_id: string;
+          fund_id: string | null;
+          amount_kobo: number;
+          currency: string;
+          interval: string;
+          status: string;
+          anonymous: boolean;
+          note: string | null;
+          paystack_customer_code: string | null;
+          paystack_plan_code: string | null;
+          paystack_subscription_code: string | null;
+          paystack_email_token: string | null;
+          next_payment_at: string | null;
+          started_at: string | null;
+          cancelled_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          parish_id: string;
+          user_id: string;
+          fund_id?: string | null;
+          amount_kobo: number;
+          currency?: string;
+          interval: string;
+          status?: string;
+          anonymous?: boolean;
+          note?: string | null;
+          paystack_customer_code?: string | null;
+          paystack_plan_code?: string | null;
+          paystack_subscription_code?: string | null;
+          paystack_email_token?: string | null;
+          next_payment_at?: string | null;
+          started_at?: string | null;
+          cancelled_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          parish_id?: string;
+          user_id?: string;
+          fund_id?: string | null;
+          amount_kobo?: number;
+          currency?: string;
+          interval?: string;
+          status?: string;
+          anonymous?: boolean;
+          note?: string | null;
+          paystack_customer_code?: string | null;
+          paystack_plan_code?: string | null;
+          paystack_subscription_code?: string | null;
+          paystack_email_token?: string | null;
+          next_payment_at?: string | null;
+          started_at?: string | null;
+          cancelled_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -726,6 +891,45 @@ export interface Database {
           campus_name?: string | null;
           network_id?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      paystack_events: {
+        Row: {
+          id: string;
+          event_type: string;
+          reference: string | null;
+          paystack_id: string | null;
+          signature_valid: boolean;
+          processed: boolean;
+          error: string | null;
+          payload: Json;
+          created_at: string;
+          processed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          event_type: string;
+          reference?: string | null;
+          paystack_id?: string | null;
+          signature_valid?: boolean;
+          processed?: boolean;
+          error?: string | null;
+          payload: Json;
+          created_at?: string;
+          processed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          event_type?: string;
+          reference?: string | null;
+          paystack_id?: string | null;
+          signature_valid?: boolean;
+          processed?: boolean;
+          error?: string | null;
+          payload?: Json;
+          created_at?: string;
+          processed_at?: string | null;
         };
         Relationships: [];
       };
@@ -1396,27 +1600,14 @@ export interface Database {
       can_post_chat: { Args: { p_chat: string }; Returns: boolean };
       create_dm: { Args: { p_other: string }; Returns: string };
       record_check_in: { Args: Record<string, never>; Returns: Database["public"]["Tables"]["streaks"]["Row"] };
-      answer_question: {
-        Args: { p_id: string; p_response: string; p_public?: boolean };
-        Returns: Database["public"]["Tables"]["ask_questions"]["Row"];
-      };
+      answer_question: { Args: { p_id: string; p_response: string; p_public?: boolean }; Returns: Database["public"]["Tables"]["ask_questions"]["Row"] };
       get_chapter: { Args: { version_code: string; book_abbrev: string; chapter_number: number }; Returns: Json };
-      search_bible: {
-        Args: { query: string; version_code?: string; max_results?: number };
-        Returns: { verse_id: string; reference: string; book_name: string; chapter: number; verse: number; text: string; rank: number }[];
-      };
-      parse_reference: {
-        Args: { ref: string; version_code?: string };
-        Returns: { book_id: string; book_name: string; chapter: number; verse: number }[];
-      };
-      // Reading plans (V2.0)
+      search_bible: { Args: { query: string; version_code?: string; max_results?: number }; Returns: { verse_id: string; reference: string; book_name: string; chapter: number; verse: number; text: string; rank: number }[] };
+      parse_reference: { Args: { ref: string; version_code?: string }; Returns: { book_id: string; book_name: string; chapter: number; verse: number }[] };
       owns_plan_subscription: { Args: { p_sub: string }; Returns: boolean };
       is_discipler_for_subscription: { Args: { p_sub: string }; Returns: boolean };
       subscribe_to_plan: { Args: { p_plan_id: string }; Returns: string };
-      complete_plan_day: {
-        Args: { p_day_id: string; p_reflection_response?: string; p_share_with_discipler?: boolean };
-        Returns: string;
-      };
+      complete_plan_day: { Args: { p_day_id: string; p_reflection_response?: string; p_share_with_discipler?: boolean }; Returns: string };
       toggle_plan_pause: { Args: { p_subscription_id: string }; Returns: boolean };
     };
     Enums: { [_ in never]: never };

@@ -240,3 +240,35 @@ RPCs: `subscribe_to_plan(plan)` (idempotent; refuses unpublished/out-of-parish),
 subscription, completes on the last day), `toggle_plan_pause(subscription)`.
 Discipler visibility is enforced via SECURITY DEFINER helpers
 `owns_plan_subscription` / `is_discipler_for_subscription`.
+
+## Giving (V2.1, Paystack)
+
+```
+parishes 1 ──< giving_funds
+user_profiles 1 ──< giving_recurring >── giving_funds
+user_profiles 1 ──< donations >── giving_funds (and >── giving_recurring for cycles)
+paystack_events  (webhook audit / idempotency)
+```
+
+- **giving_funds**: admin-managed designations (Tithe, Offering, Building, Missions
+  seeded). Members read active funds in their parish; admins manage.
+- **giving_recurring**: a recurring mandate (amount_kobo, interval weekly/monthly/
+  quarterly/annually) backed by a Paystack plan + subscription. Status
+  pending → active → (attention | paused | cancelled).
+- **donations**: one-time gifts and recurring-cycle charges. Stores only a
+  reference, amount (kobo), fund, status, channel, timestamps — **never card/bank
+  data**. `kind` one_time|recurring; `recurring_id` links a cycle to its mandate.
+- **paystack_events**: every webhook event, with `signature_valid` and `processed`
+  for audit + idempotency (a charge is counted once).
+
+**Privacy/money guardrails:** giving is private — a giver sees only their own
+donations + mandates (`user_id = current_profile_id()`); pastor/finance admins
+see their parish's records; there are NO public donor lists or leaderboards, and
+no admin/member read path beyond that. All writes are server-mediated: members
+have no INSERT/UPDATE on donations or mandates — rows are created by the
+`paystack-initialize` edge function and confirmed by `paystack-webhook` (both
+service-role). Amounts are in kobo.
+
+Edge functions: `paystack-initialize` (user JWT; creates the pending row, calls
+Paystack, returns the checkout URL) and `paystack-webhook` (no JWT; verifies the
+`x-paystack-signature`, records outcomes idempotently).

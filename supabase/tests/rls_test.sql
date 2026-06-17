@@ -369,4 +369,40 @@ set local role authenticated;
 select public.t_assert((select count(*) = 0 from public.reading_plan_progress where subscription_id = :'rp_sub'), 'RP7: house leader cannot see reading-plan progress');
 reset role;
 
+-- ===========================================================================
+-- 12. GIVING (V2.1) — privacy: giver sees own, admins see parish, no peeking
+-- ===========================================================================
+reset role;
+insert into public.donations (id, parish_id, user_id, fund_id, amount_kobo, kind, status, paystack_reference)
+  select '00000000-0000-0000-0000-0000000d0c01', '00000000-0000-0000-0000-000000000001', :'ada',
+         (select id from public.giving_funds where parish_id='00000000-0000-0000-0000-000000000001' and slug='tithe'),
+         500000, 'one_time', 'success', 'ps_ada_1';
+insert into public.donations (id, parish_id, user_id, fund_id, amount_kobo, kind, status, paystack_reference)
+  select '00000000-0000-0000-0000-0000000d0c02', '00000000-0000-0000-0000-000000000001', :'bode',
+         (select id from public.giving_funds where parish_id='00000000-0000-0000-0000-000000000001' and slug='offering'),
+         300000, 'one_time', 'success', 'ps_bode_1';
+insert into public.giving_recurring (id, parish_id, user_id, fund_id, amount_kobo, interval, status)
+  select '00000000-0000-0000-0000-0000000d0d01', '00000000-0000-0000-0000-000000000001', :'ada',
+         (select id from public.giving_funds where parish_id='00000000-0000-0000-0000-000000000001' and slug='tithe'),
+         500000, 'monthly', 'active';
+insert into public.paystack_events (event_type, reference, payload, signature_valid, processed)
+  values ('charge.success', 'ps_ada_1', '{}'::jsonb, true, true);
+
+-- Ada (giver)
+select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true);
+set local role authenticated;
+select public.t_assert((select count(*) = 4 from public.giving_funds), 'GV1: member sees active parish funds');
+select public.t_assert((select count(*) = 1 from public.donations where id = '00000000-0000-0000-0000-0000000d0c01'), 'GV2: giver sees own donation');
+select public.t_assert((select count(*) = 0 from public.donations where id = '00000000-0000-0000-0000-0000000d0c02'), 'GV3: giver cannot see another member''s donation');
+select public.t_assert((select count(*) = 1 from public.giving_recurring where id = '00000000-0000-0000-0000-0000000d0d01'), 'GV4: giver sees own recurring mandate');
+select public.t_assert((select count(*) = 0 from public.paystack_events), 'GV5: member cannot read webhook events');
+reset role;
+
+-- Pastor (finance admin) sees parish records
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);
+set local role authenticated;
+select public.t_assert((select count(*) = 2 from public.donations where parish_id = '00000000-0000-0000-0000-000000000001'), 'GV6: parish admin sees all parish donations');
+select public.t_assert((select count(*) >= 1 from public.paystack_events), 'GV7: parish admin can audit webhook events');
+reset role;
+
 rollback;
