@@ -272,3 +272,14 @@ service-role). Amounts are in kobo.
 Edge functions: `paystack-initialize` (user JWT; creates the pending row, calls
 Paystack, returns the checkout URL) and `paystack-webhook` (no JWT; verifies the
 `x-paystack-signature`, records outcomes idempotently).
+
+### Giving — realtime + management (0024 / V2.1 follow-up)
+
+- `donations` and `giving_recurring` are published to `supabase_realtime`, so the
+  app live-watches a gift's `status` (after opening the Paystack checkout URL the
+  client waits for the webhook to settle it) and mandate status changes.
+- `paystack-initialize` returns `authorization_url` **and** `access_code` — use
+  the URL for a WebView/redirect, or `access_code` with the Paystack inline SDK.
+- `paystack-manage-recurring` (user JWT) lets a giver `cancel` / `pause` / `resume`
+  their OWN mandate (ownership enforced; calls Paystack enable/disable). Pause =
+  disabled+`paused`; resume = enabled+`active`; cancel = disabled+`cancelled`.

@@ -93,7 +93,14 @@ Deno.serve(async (req) => {
     });
     const initJson = await initRes.json();
     if (!initRes.ok || !initJson.status) return json({ error: "paystack init failed", detail: initJson.message }, 502);
-    return json({ authorization_url: initJson.data.authorization_url, recurring_id: rec.id, reference: initJson.data.reference });
+    // access_code is returned so the client may use the Paystack inline/popup SDK
+    // (resumeTransaction) instead of opening authorization_url; either works.
+    return json({
+      authorization_url: initJson.data.authorization_url,
+      access_code: initJson.data.access_code,
+      reference: initJson.data.reference,
+      recurring_id: rec.id,
+    });
   }
 
   // one_time
@@ -117,5 +124,10 @@ Deno.serve(async (req) => {
     await svc.from("donations").update({ status: "abandoned" }).eq("reference", reference);
     return json({ error: "paystack init failed", detail: initJson.message }, 502);
   }
-  return json({ authorization_url: initJson.data.authorization_url, reference });
+  // authorization_url for the redirect flow; access_code for the inline SDK.
+  return json({
+    authorization_url: initJson.data.authorization_url,
+    access_code: initJson.data.access_code,
+    reference,
+  });
 });

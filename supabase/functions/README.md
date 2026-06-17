@@ -56,3 +56,9 @@ Secrets: `PAYSTACK_SECRET_KEY` (both), plus the standard `SUPABASE_URL` /
 `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY`. In the **Paystack dashboard**,
 set the webhook URL to the deployed `paystack-webhook` function URL. The client
 holds only the Paystack **public** key + the returned checkout URL.
+
+| `paystack-manage-recurring` | User call (JWT) | Cancel / pause / resume the caller's own recurring mandate (ownership-checked; Paystack subscription enable/disable). Body: `{ recurring_id, action: 'cancel'|'pause'|'resume' }` |
+
+`paystack-initialize` now also returns `access_code` (for the Paystack inline SDK)
+alongside `authorization_url`. `donations` + `giving_recurring` are in the
+`supabase_realtime` publication (0024) so clients can watch gift/mandate status.
