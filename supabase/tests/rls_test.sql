@@ -454,6 +454,13 @@ select public.t_assert((select count(*) = 1 from public.user_profiles where auth
 select public.t_assert((select count(*) = 0 from public.chats where kind = 'announcements'), 'GATE6: pending member cannot read parish chat');
 reset role;
 
+-- Parish admin CAN see pending signups (approval queue) + list_pending_members.
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);  -- Pastor (admin)
+set local role authenticated;
+select public.t_assert((select count(*) >= 1 from public.user_profiles where status = 'pending'), 'GATE6b: admin sees pending signups');
+select public.t_assert((select count(*) >= 1 from public.list_pending_members()), 'GATE6c: list_pending_members returns the queue');
+reset role;
+
 -- Non-admin cannot approve.
 select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);  -- Bode (not admin)
 set local role authenticated;
@@ -504,5 +511,27 @@ exception when others then
   perform public.t_assert(sqlerrm like '%not in your parish%', 'GATE11: cannot pick a campus outside your parish');
 end $x$;
 reset role;
+
+-- Reports inbox: admin resolve via resolve_report; non-admin blocked.
+reset role;
+insert into public.reports (id, parish_id, reporter_id, target_type, target_id, reason)
+  values ('00000000-0000-0000-0000-0000000d0e01', '00000000-0000-0000-0000-000000000001', :'bode',
+          'message', '00000000-0000-0000-0000-0000000ddead', 'test report');
+select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);  -- Bode (non-admin)
+set local role authenticated;
+do $r$ begin
+  perform public.resolve_report('00000000-0000-0000-0000-0000000d0e01', 'resolved');
+  perform public.t_assert(false, 'GATE12 expected a block on non-admin resolve');
+exception when others then
+  perform public.t_assert(sqlerrm like '%not authorized%', 'GATE12: non-admin cannot resolve reports');
+end $r$;
+reset role;
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);  -- Pastor (admin)
+set local role authenticated;
+select public.resolve_report('00000000-0000-0000-0000-0000000d0e01', 'resolved');
+reset role;
+select public.t_assert((select status = 'resolved' and resolved_by is not null and resolved_at is not null
+                        from public.reports where id = '00000000-0000-0000-0000-0000000d0e01'),
+                       'GATE13: admin resolves a report (stamped)');
 
 rollback;

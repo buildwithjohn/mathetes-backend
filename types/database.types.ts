@@ -1609,6 +1609,8 @@ export interface Database {
       set_my_campus: { Args: { p_campus: string }; Returns: undefined };
       approve_member: { Args: { p_user: string; p_campus: string }; Returns: undefined };
       reject_member: { Args: { p_user: string }; Returns: undefined };
+      list_pending_members: { Args: Record<string, never>; Returns: { id: string; name: string; email: string; created_at: string }[] };
+      resolve_report: { Args: { p_report: string; p_status: string }; Returns: undefined };
       record_check_in: { Args: Record<string, never>; Returns: Database["public"]["Tables"]["streaks"]["Row"] };
       answer_question: { Args: { p_id: string; p_response: string; p_public?: boolean }; Returns: Database["public"]["Tables"]["ask_questions"]["Row"] };
       get_chapter: { Args: { version_code: string; book_abbrev: string; chapter_number: number }; Returns: Json };
