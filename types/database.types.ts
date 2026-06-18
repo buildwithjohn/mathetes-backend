@@ -1355,6 +1355,7 @@ export interface Database {
           date_of_birth: string | null;
           phone: string | null;
           status: string;
+          is_owner: boolean;
         };
         Insert: {
           id?: string;
@@ -1375,6 +1376,7 @@ export interface Database {
           date_of_birth?: string | null;
           phone?: string | null;
           status?: string;
+          is_owner?: boolean;
         };
         Update: {
           id?: string;
@@ -1395,6 +1397,7 @@ export interface Database {
           date_of_birth?: string | null;
           phone?: string | null;
           status?: string;
+          is_owner?: boolean;
         };
         Relationships: [];
       };
@@ -1599,6 +1602,7 @@ export interface Database {
       current_house_id: { Args: Record<string, never>; Returns: string };
       current_user_role: { Args: Record<string, never>; Returns: string };
       is_parish_admin: { Args: Record<string, never>; Returns: boolean };
+      is_owner: { Args: Record<string, never>; Returns: boolean };
       is_active_member: { Args: Record<string, never>; Returns: boolean };
       is_blocked_by_me: { Args: { p_target: string }; Returns: boolean };
       is_chat_member: { Args: { p_chat: string }; Returns: boolean };

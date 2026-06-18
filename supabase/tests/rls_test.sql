@@ -80,6 +80,13 @@ update public.user_profiles
 update public.user_privacy set cross_gender_dm_approval = false
   where user_id = (select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000004');
 
+-- Owner (admin + is_owner) and a plain (non-owner) admin for management tests.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('0d000000-0000-0000-0000-0000000000aa', 'owner@x',  '{"name":"Owner"}'),
+  ('0d000000-0000-0000-0000-0000000000ab', 'padmin@x', '{"name":"Plain Admin"}');
+update public.user_profiles set role = 'admin', is_owner = true  where auth_id = '0d000000-0000-0000-0000-0000000000aa';
+update public.user_profiles set role = 'admin', is_owner = false where auth_id = '0d000000-0000-0000-0000-0000000000ab';
+
 -- 0025 membership gating: the new handle_new_user defaults unmatched email
 -- domains (all the '@x' test users) to status='pending' with a null parish.
 -- Activate every fixture member and put them in the pilot parish so the prior
@@ -191,6 +198,15 @@ reset role;
 select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);
 set local role authenticated;
 select public.answer_question(:'q', 'Forgiveness begins in prayer.', true);
+-- Re-answer guard (0028): a stale re-submit cannot clobber the given answer.
+do $ra$
+declare v public.ask_questions;
+begin
+  v := public.answer_question((select id::text from public.ask_questions where body = 'How do I forgive?' limit 1), 'stale overwrite', false);
+  perform public.t_assert(false, 'AskPastor re-answer expected a block');
+exception when others then
+  perform public.t_assert(sqlerrm like '%already answered%', 'AskPastor: re-answer guard blocks stale overwrite');
+end $ra$;
 reset role;
 -- Another member (Bode) must NOT see the raw row, but SEES the anonymized feed.
 select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);
@@ -474,8 +490,21 @@ exception when others then
 end $ap$;
 reset role;
 
--- Admin approves -> active + campus + parish assigned.
-select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);  -- Pastor (admin)
+-- Pastor can NO LONGER approve (0028 narrowed approve to role='admin').
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);  -- Pastor
+set local role authenticated;
+do $pa$ begin
+  perform public.approve_member(
+    (select id from public.user_profiles where auth_id = '0f111111-0000-0000-0000-000000000099'),
+    '00000000-0000-0000-0000-0000000ca401');
+  perform public.t_assert(false, 'GATE7b expected a block: pastor cannot approve');
+exception when others then
+  perform public.t_assert(sqlerrm like '%not authorized%', 'GATE7b: pastor cannot approve (admin-only)');
+end $pa$;
+reset role;
+
+-- A plain admin (role='admin', not owner) approves -> active + campus + parish.
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-0000000000ab', true);  -- Plain Admin
 set local role authenticated;
 select public.approve_member(:'pend', '00000000-0000-0000-0000-0000000ca401');
 reset role;
@@ -526,12 +555,28 @@ exception when others then
   perform public.t_assert(sqlerrm like '%not authorized%', 'GATE12: non-admin cannot resolve reports');
 end $r$;
 reset role;
-select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);  -- Pastor (admin)
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-0000000000ab', true);  -- Plain Admin
 set local role authenticated;
 select public.resolve_report('00000000-0000-0000-0000-0000000d0e01', 'resolved');
 reset role;
 select public.t_assert((select status = 'resolved' and resolved_by is not null and resolved_at is not null
                         from public.reports where id = '00000000-0000-0000-0000-0000000d0e01'),
                        'GATE13: admin resolves a report (stamped)');
+
+-- Owner-only grants admin (0028): a non-owner admin cannot create admins.
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-0000000000ab', true);  -- Plain Admin (not owner)
+set local role authenticated;
+do $ga$ begin
+  update public.user_profiles set role = 'admin' where auth_id = '0f000000-0000-0000-0000-000000000006';
+  perform public.t_assert(false, 'GATE14 expected a block: non-owner cannot grant admin');
+exception when others then
+  perform public.t_assert(sqlerrm like '%only an owner%', 'GATE14: non-owner admin cannot grant admin');
+end $ga$;
+reset role;
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-0000000000aa', true);  -- Owner
+set local role authenticated;
+update public.user_profiles set role = 'admin' where auth_id = '0f000000-0000-0000-0000-000000000006';
+reset role;
+select public.t_assert((select role = 'admin' from public.user_profiles where auth_id = '0f000000-0000-0000-0000-000000000006'), 'GATE15: owner can grant admin');
 
 rollback;
