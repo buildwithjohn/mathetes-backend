@@ -87,16 +87,19 @@ house SQL only works after the auth users exist.
 
 ## 3. Pastoral guardrails — current status (non-negotiable)
 
-- **DMs**: now house-mate-to-house-mate only (B1), so every DM has a house leader
-  for oversight. House leader sees DM existence/oversight; pastor does **not** see
-  DMs. Cross-gender DMs require recipient approval unless they opted out (B2).
+- **DMs**: house-mate-to-house-mate only (B1). Private DMs are **not** an
+  oversight surface (0029): only the two participants can read a DM — leaders and
+  pastors cannot browse them. Safety path: a participant who reports a specific DM
+  message exposes **that one message** (and nothing else) to the parish
+  admin/pastor. Cross-gender DMs still require recipient approval unless they
+  opted out (B2).
 - **Discipler chats**: pastor oversight (read-only).
 - **Ask Pastor**: public answers anonymized via `public_qa`; `asker_id` never
   leaks.
 - **Blocks**: a block hides the blocked user's messages (restrictive RLS).
 - **`parish_group`** (new general room): readable+writable by all parish members
   including the pastor → accountable by design, not a private channel.
-- Oversight everywhere is **read-only**. 36 RLS assertions encode these and pass.
+- Oversight (where it exists) is **read-only**. 74 RLS assertions encode these and pass.
 
 ---
 

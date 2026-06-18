@@ -106,8 +106,11 @@ user_profiles.discipler_id ──> user_profiles.id
 ```
 
 - Kinds: `house_group`, `announcements`, `ask_pastor_thread`, `discipler`, `dm`.
-- **Oversight (read-only):** DM → house leader of the pair; discipler chat →
-  parish pastor. No blanket pastor/admin read of private chats.
+- **Oversight (read-only):** discipler chat → parish pastor; group/announcement
+  chats → their members. Private DMs are **not** an oversight surface (0029):
+  only the two participants read a DM. A reported DM message is exposed to parish
+  admin/pastor for that one message (consent-driven safety path). No blanket
+  pastor/admin read of private chats.
 - Automation: assigning a `house_id` auto-joins the house group chat (leaders get
   the `leader` role); setting `discipler_id` creates the discipler chat. `create_dm`
   opens/reuses a DM (carrying the shared house for oversight).

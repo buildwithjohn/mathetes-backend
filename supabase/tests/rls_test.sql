@@ -113,6 +113,15 @@ set local role authenticated;
 select public.create_dm(:'bode') as dm \gset
 insert into public.messages (chat_id, author_id, body) values (:'dm', :'ada', 'Praying for you today.');
 reset role;
+-- Bode replies (authored as Bode) so the DM has 2 messages: proves the report
+-- path exposes ONLY the reported one, not the whole thread.
+select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);
+set local role authenticated;
+insert into public.messages (chat_id, author_id, body) values (:'dm', :'bode', 'Thank you, means a lot.');
+reset role;
+
+-- The DM message Ada will later report (drives the 0029 report-path checks).
+select id as dmsg from public.messages where chat_id = :'dm' and body = 'Praying for you today.' limit 1 \gset
 
 -- Capture remaining chat ids as owner.
 select c.id as dchat from public.chats c
@@ -132,17 +141,18 @@ reset role;
 -- 1. CHAT OVERSIGHT (the core pastoral guardrail)
 -- ===========================================================================
 
--- DM: participant reads; house leader oversees (read-only); pastor & outsiders
--- cannot, and cannot even see DM existence.
+-- DM (0029): private to participants only. Leaders no longer get passive
+-- oversight; pastors & outsiders cannot read or even see DM existence.
 select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true);
 set local role authenticated;
 select public.t_assert((select public.can_read_chat(:'dm')), 'DM: participant (Ada) can read');
 reset role;
 
+-- House leader Tope: 0029 removed passive DM oversight entirely.
 select set_config('request.jwt.claim.sub', '0c000000-0000-0000-0000-000000000003', true);
 set local role authenticated;
-select public.t_assert((select public.can_read_chat(:'dm')), 'DM: house leader (Tope) has oversight read');
-select public.t_assert((select not public.can_post_chat(:'dm')), 'DM: oversight is read-only (Tope cannot post)');
+select public.t_assert((select not public.can_read_chat(:'dm')), 'DM: house leader (Tope) CANNOT browse a private DM (0029)');
+select public.t_assert((select count(*) = 0 from public.messages where chat_id = :'dm'), 'DM: house leader sees no DM messages');
 reset role;
 
 select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);
@@ -156,6 +166,27 @@ select set_config('request.jwt.claim.sub', '0f000000-0000-0000-0000-000000000006
 set local role authenticated;
 select public.t_assert((select not public.can_read_chat(:'dm')), 'DM: other-house member CANNOT read');
 select public.t_assert((select count(*) = 0 from public.messages where chat_id = :'dm'), 'DM: outsider sees no DM messages');
+reset role;
+
+-- Report path (0029): a participant reports a specific DM message; ONLY that
+-- message becomes visible to parish admin/pastor. Browsing stays blocked.
+select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true);
+set local role authenticated;
+insert into public.reports (parish_id, reporter_id, target_type, target_id, reason)
+  values ('00000000-0000-0000-0000-000000000001', :'ada', 'message', :'dmsg', 'harassment');
+reset role;
+
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);
+set local role authenticated;
+select public.t_assert((select not public.can_read_chat(:'dm')), 'DM report: pastor still cannot browse the DM');
+select public.t_assert((select count(*) = 1 from public.messages where chat_id = :'dm'), 'DM report: pastor sees ONLY the reported message');
+select public.t_assert((select body = 'Praying for you today.' from public.messages where chat_id = :'dm'), 'DM report: the one visible message is the reported one');
+reset role;
+
+-- A non-admin outsider gains nothing from the report.
+select set_config('request.jwt.claim.sub', '0f000000-0000-0000-0000-000000000006', true);
+set local role authenticated;
+select public.t_assert((select count(*) = 0 from public.messages where chat_id = :'dm'), 'DM report: report does not expose the message to other members');
 reset role;
 
 -- Discipler chat: pastor oversees; house leader does NOT; disciple reads.

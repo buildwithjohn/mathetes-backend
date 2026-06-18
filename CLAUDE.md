@@ -71,7 +71,9 @@ Every table has RLS enabled. Policies enforce:
 1. User can read/write their own data (notes, bookmarks, highlights, etc.)
 2. Parish isolation: users only see content in their parish
 3. House isolation: house-scoped content limited to members
-4. DM access: only sender, receiver, and the assigned house leader (oversight)
+4. DM access: only the sender and receiver. Private DMs are NOT a passive
+   oversight surface (0029) — leaders/pastors cannot browse them. A reported DM
+   message becomes visible to parish admin/pastor for that one message only.
 5. Discipler chat: disciple, discipler, and parish pastor (oversight)
 6. Admin access: role='pastor' or 'admin' can manage parish content
 7. Public content: WOTD, devotionals, announcements readable by parish members
