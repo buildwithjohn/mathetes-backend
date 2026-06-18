@@ -1606,6 +1606,7 @@ export interface Database {
       can_read_chat: { Args: { p_chat: string }; Returns: boolean };
       can_post_chat: { Args: { p_chat: string }; Returns: boolean };
       create_dm: { Args: { p_other: string }; Returns: string };
+      set_my_campus: { Args: { p_campus: string }; Returns: undefined };
       approve_member: { Args: { p_user: string; p_campus: string }; Returns: undefined };
       reject_member: { Args: { p_user: string }; Returns: undefined };
       record_check_in: { Args: Record<string, never>; Returns: Database["public"]["Tables"]["streaks"]["Row"] };

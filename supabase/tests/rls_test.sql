@@ -478,4 +478,31 @@ select public.t_assert(
    from public.user_profiles where id = :'pend'),
   'GATE8: admin approve activates + assigns campus/parish');
 
+-- set_my_campus (0026): an active member with null campus picks once.
+select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);  -- Bode (active, campus null)
+set local role authenticated;
+select public.set_my_campus('00000000-0000-0000-0000-0000000ca401');  -- Oye
+select public.t_assert((select campus_id = '00000000-0000-0000-0000-0000000ca401' from public.user_profiles where auth_id = '0b000000-0000-0000-0000-000000000002'), 'GATE9: set_my_campus sets campus once');
+do $c$ begin
+  perform public.set_my_campus('00000000-0000-0000-0000-0000000ca402');  -- Ikole
+  perform public.t_assert(false, 'GATE10 expected a block on second set');
+exception when others then
+  perform public.t_assert(sqlerrm like '%already set%', 'GATE10: campus cannot be changed once set');
+end $c$;
+reset role;
+
+-- Cross-parish campus is rejected.
+insert into public.campuses (id, parish_id, slug, name)
+  values ('00000000-0000-0000-0000-0000000ca4ff', '00000000-0000-0000-0000-0000000000ff', 'other', 'Other Campus')
+  on conflict (parish_id, slug) do nothing;
+select set_config('request.jwt.claim.sub', '0c000000-0000-0000-0000-000000000003', true);  -- Tope (cccfsp, campus null)
+set local role authenticated;
+do $x$ begin
+  perform public.set_my_campus('00000000-0000-0000-0000-0000000ca4ff');
+  perform public.t_assert(false, 'GATE11 expected a cross-parish block');
+exception when others then
+  perform public.t_assert(sqlerrm like '%not in your parish%', 'GATE11: cannot pick a campus outside your parish');
+end $x$;
+reset role;
+
 rollback;
