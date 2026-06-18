@@ -80,6 +80,18 @@ update public.user_profiles
 update public.user_privacy set cross_gender_dm_approval = false
   where user_id = (select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000004');
 
+-- 0025 membership gating: the new handle_new_user defaults unmatched email
+-- domains (all the '@x' test users) to status='pending' with a null parish.
+-- Activate every fixture member and put them in the pilot parish so the prior
+-- sections behave as before (the other-parish user keeps its parish).
+update public.user_profiles set status = 'active';
+update public.user_profiles set parish_id = '00000000-0000-0000-0000-000000000001' where parish_id is null;
+
+-- One still-PENDING member (no matching domain → no campus/parish) for gating tests.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('0f111111-0000-0000-0000-000000000099', 'pending@x', '{"name":"Pending Pat"}');
+select id as pend from public.user_profiles where auth_id = '0f111111-0000-0000-0000-000000000099' \gset
+
 -- Profile ids for convenience.
 select id as ada  from public.user_profiles where auth_id = '0a000000-0000-0000-0000-000000000001' \gset
 select id as bode from public.user_profiles where auth_id = '0b000000-0000-0000-0000-000000000002' \gset
@@ -404,5 +416,66 @@ set local role authenticated;
 select public.t_assert((select count(*) = 2 from public.donations where parish_id = '00000000-0000-0000-0000-000000000001'), 'GV6: parish admin sees all parish donations');
 select public.t_assert((select count(*) >= 1 from public.paystack_events), 'GV7: parish admin can audit webhook events');
 reset role;
+
+-- ===========================================================================
+-- 13. MEMBERSHIP GATING (0025) — self-escalation lock + approval + visibility
+-- ===========================================================================
+
+-- Self-escalation is blocked: a member cannot change their own role or status.
+select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true);  -- Ada (member, active)
+set local role authenticated;
+do $esc1$ begin
+  update public.user_profiles set role = 'admin' where auth_id = '0a000000-0000-0000-0000-000000000001';
+  perform public.t_assert(false, 'GATE1 expected a block but the role update succeeded');
+exception when others then
+  perform public.t_assert(sqlerrm like '%not user-editable%', 'GATE1: cannot self-escalate role');
+end $esc1$;
+do $esc2$ begin
+  update public.user_profiles set status = 'suspended' where auth_id = '0a000000-0000-0000-0000-000000000001';
+  perform public.t_assert(false, 'GATE2 expected a block but the status update succeeded');
+exception when others then
+  perform public.t_assert(sqlerrm like '%not user-editable%', 'GATE2: cannot change own status');
+end $esc2$;
+-- A member CAN still edit a normal profile field.
+update public.user_profiles set dept = 'Computer Science' where auth_id = '0a000000-0000-0000-0000-000000000001';
+select public.t_assert((select dept = 'Computer Science' from public.user_profiles where auth_id = '0a000000-0000-0000-0000-000000000001'), 'GATE3: member can still edit non-protected fields');
+reset role;
+
+-- Pending member is hidden from other members' directory.
+select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);  -- Bode (active)
+set local role authenticated;
+select public.t_assert((select count(*) = 0 from public.user_profiles where id = :'pend'), 'GATE4: pending member hidden from directory');
+reset role;
+
+-- Pending member sees only themselves and can read no parish chat.
+select set_config('request.jwt.claim.sub', '0f111111-0000-0000-0000-000000000099', true);  -- Pending Pat
+set local role authenticated;
+select public.t_assert((select count(*) = 1 from public.user_profiles where auth_id = '0f111111-0000-0000-0000-000000000099'), 'GATE5: pending member sees self');
+select public.t_assert((select count(*) = 0 from public.chats where kind = 'announcements'), 'GATE6: pending member cannot read parish chat');
+reset role;
+
+-- Non-admin cannot approve.
+select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);  -- Bode (not admin)
+set local role authenticated;
+do $ap$ begin
+  perform public.approve_member(
+    (select id from public.user_profiles where auth_id = '0f111111-0000-0000-0000-000000000099'),
+    '00000000-0000-0000-0000-0000000ca401');
+  perform public.t_assert(false, 'GATE7 expected a block but approve succeeded');
+exception when others then
+  perform public.t_assert(sqlerrm like '%not authorized%', 'GATE7: non-admin cannot approve members');
+end $ap$;
+reset role;
+
+-- Admin approves -> active + campus + parish assigned.
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);  -- Pastor (admin)
+set local role authenticated;
+select public.approve_member(:'pend', '00000000-0000-0000-0000-0000000ca401');
+reset role;
+select public.t_assert(
+  (select status = 'active' and campus_id = '00000000-0000-0000-0000-0000000ca401'
+          and parish_id = '00000000-0000-0000-0000-000000000001'
+   from public.user_profiles where id = :'pend'),
+  'GATE8: admin approve activates + assigns campus/parish');
 
 rollback;

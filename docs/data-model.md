@@ -283,3 +283,31 @@ Paystack, returns the checkout URL) and `paystack-webhook` (no JWT; verifies the
 - `paystack-manage-recurring` (user JWT) lets a giver `cancel` / `pause` / `resume`
   their OWN mandate (ownership enforced; calls Paystack enable/disable). Pause =
   disabled+`paused`; resume = enabled+`active`; cancel = disabled+`cancelled`.
+
+## Membership gating (0025)
+
+```
+campuses.allowed_email_domains text[]   -- lowercase, no '@'
+user_profiles.status  pending | active | rejected | suspended
+```
+
+- **Signup** (`handle_new_user`): the email domain is matched against campus
+  allowlists. One match → `campus_id` + parish derived, `status='active'`.
+  Several campuses share the domain (e.g. one FUOYE domain across Oye+Ikole) →
+  activate into the parish, campus null (chosen in onboarding). No match →
+  `status='pending'`, **null parish/campus**. Role is ALWAYS `member` (never read
+  from signup metadata). Existing profiles were backfilled to `active`.
+- **Self-escalation lock:** a `BEFORE UPDATE` trigger (`guard_profile_protected_cols`)
+  blocks any change to `role` / `status` / `parish_id` / `campus_id` unless the
+  actor is a parish admin or a privileged DB role (the SECURITY DEFINER RPCs /
+  service role). Members can edit their other profile fields freely.
+- **Approval RPCs** (parish-admin only, SECURITY DEFINER): `approve_member(p_user,
+  p_campus)` → `active` + campus + parish; `reject_member(p_user)` → `rejected`.
+  Leader elevation stays a normal admin role update.
+- **Gating:** pending members have a null parish, so parish-scoped content/chats
+  return nothing. The directory shows you yourself but lists parish-mates only if
+  both you and they are `active`; `can_read_chat` / `can_post_chat` also require
+  `is_active_member()`. So pending/suspended/rejected members never appear in the
+  directory or any chat. App-level gate (a "pending approval" screen) is primary.
+- **Mobile contract:** `user_profiles.status` is `'pending' | 'active' | 'rejected'
+  | 'suspended'`; the app shows the pending screen unless `status === 'active'`.

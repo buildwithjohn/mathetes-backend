@@ -251,6 +251,7 @@ export interface Database {
           name: string;
           is_primary: boolean;
           created_at: string;
+          allowed_email_domains: string[];
         };
         Insert: {
           id?: string;
@@ -259,6 +260,7 @@ export interface Database {
           name: string;
           is_primary?: boolean;
           created_at?: string;
+          allowed_email_domains?: string[];
         };
         Update: {
           id?: string;
@@ -267,6 +269,7 @@ export interface Database {
           name?: string;
           is_primary?: boolean;
           created_at?: string;
+          allowed_email_domains?: string[];
         };
         Relationships: [];
       };
@@ -1351,6 +1354,7 @@ export interface Database {
           campus_id: string | null;
           date_of_birth: string | null;
           phone: string | null;
+          status: string;
         };
         Insert: {
           id?: string;
@@ -1370,6 +1374,7 @@ export interface Database {
           campus_id?: string | null;
           date_of_birth?: string | null;
           phone?: string | null;
+          status?: string;
         };
         Update: {
           id?: string;
@@ -1389,6 +1394,7 @@ export interface Database {
           campus_id?: string | null;
           date_of_birth?: string | null;
           phone?: string | null;
+          status?: string;
         };
         Relationships: [];
       };
@@ -1593,12 +1599,15 @@ export interface Database {
       current_house_id: { Args: Record<string, never>; Returns: string };
       current_user_role: { Args: Record<string, never>; Returns: string };
       is_parish_admin: { Args: Record<string, never>; Returns: boolean };
+      is_active_member: { Args: Record<string, never>; Returns: boolean };
       is_blocked_by_me: { Args: { p_target: string }; Returns: boolean };
       is_chat_member: { Args: { p_chat: string }; Returns: boolean };
       is_chat_leader: { Args: { p_chat: string }; Returns: boolean };
       can_read_chat: { Args: { p_chat: string }; Returns: boolean };
       can_post_chat: { Args: { p_chat: string }; Returns: boolean };
       create_dm: { Args: { p_other: string }; Returns: string };
+      approve_member: { Args: { p_user: string; p_campus: string }; Returns: undefined };
+      reject_member: { Args: { p_user: string }; Returns: undefined };
       record_check_in: { Args: Record<string, never>; Returns: Database["public"]["Tables"]["streaks"]["Row"] };
       answer_question: { Args: { p_id: string; p_response: string; p_public?: boolean }; Returns: Database["public"]["Tables"]["ask_questions"]["Row"] };
       get_chapter: { Args: { version_code: string; book_abbrev: string; chapter_number: number }; Returns: Json };
