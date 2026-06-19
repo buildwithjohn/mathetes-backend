@@ -7,7 +7,7 @@ on:
 
 jobs:
   database:
-    name: Migrations, RLS & KJV
+    name: Migrations, RLS & Bible
     runs-on: ubuntu-latest
 
     services:
@@ -47,3 +47,6 @@ jobs:
 
       - name: Verify full KJV import
         run: ./scripts/test-kjv.sh
+
+      - name: Verify public-domain translations (WEB/BSB/ASV)
+        run: ./scripts/test-bible.sh
