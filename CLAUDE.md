@@ -42,7 +42,12 @@ Core tables (canonical list):
   posted_at, posted_by)
 
 **Bible:**
-- bible_versions, bible_books, bible_chapters, bible_verses
+- bible_versions, bible_books, bible_chapters, bible_verses (KJV, WEB, BSB, ASV)
+
+**Library / media hub:**
+- library_items (id, parish_id, kind[book|manual|audio|video], title, description,
+  author, category, cover_image_url, file_url, external_url, duration_seconds,
+  published, published_at, author_id) — files in the content-media bucket
 
 **Personal library:**
 - bookmarks, highlights, notes, reading_position

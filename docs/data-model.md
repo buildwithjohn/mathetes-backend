@@ -182,6 +182,27 @@ user_profiles 1 ──< notification_preferences
   consulting the per-type `push` preference. `notifications` is published to
   realtime for the live bell.
 
+## Library / media hub
+
+```
+parishes 1 ──< library_items >── user_profiles (author_id)
+```
+
+- A parish media hub: **books**, monthly devotional **manuals**
+  (`kind='manual'`, distinct from the daily `devotionals`), audio **sermons**,
+  and occasional community **video** (`kind in book|manual|audio|video`).
+- The app reads published items and opens `file_url` (PDF/audio/mp4 in the
+  `content-media` bucket) or `external_url` (e.g. a YouTube link) directly — no
+  deep-linking. `category` is a free tag (e.g. "September 2026" for manuals, a
+  topic for sermons); `duration_seconds` for audio/video.
+- **RLS:** members `SELECT` only `published = true` rows in their parish;
+  `pastor`/`admin` have full write within their parish (and see drafts). There
+  is no member write path. Indexed `(parish_id, published, published_at desc)`.
+- **Storage:** files live in the shared `content-media` bucket (0019). Migration
+  0031 widens it to allow PDFs + cover images and raises the size limit to
+  512 MB (books/video can be large). Read is public-by-URL (so the app can open
+  files in a browser); only pastor/admin may upload.
+
 ## Verse images
 
 ```

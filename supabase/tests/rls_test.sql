@@ -290,7 +290,11 @@ select public.t_assert((select count(*) = 1 from public.notifications where type
 -- ===========================================================================
 select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000007', true);  -- other parish
 set local role authenticated;
-select public.t_assert((select count(*) = 66 from public.bible_books), 'Bible: readable across parishes (66 books)');
+-- Bible is readable by every authenticated user, across parishes. Multiple
+-- public-domain versions exist (KJV + WEB/BSB/ASV from 0030); each has 66 books.
+select public.t_assert((select count(*) >= 4 from public.bible_versions), 'Bible: all versions readable across parishes');
+select public.t_assert((select count(*) = 66 from public.bible_books b
+  join public.bible_versions ver on ver.id = b.version_id where ver.code = 'KJV'), 'Bible: KJV has 66 books, readable cross-parish');
 select public.t_assert((select reference = 'Proverbs 3:5' from public.search_bible('lean not unto', 'KJV') limit 1), 'Bible: search finds Proverbs 3:5');
 reset role;
 
@@ -609,5 +613,40 @@ set local role authenticated;
 update public.user_profiles set role = 'admin' where auth_id = '0f000000-0000-0000-0000-000000000006';
 reset role;
 select public.t_assert((select role = 'admin' from public.user_profiles where auth_id = '0f000000-0000-0000-0000-000000000006'), 'GATE15: owner can grant admin');
+
+-- ===========================================================================
+-- 14. LIBRARY / MEDIA HUB (0031) - published-in-parish reads; admin-only writes
+-- ===========================================================================
+-- Pastor (admin) creates a published + a draft item in the parish.
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);  -- Pastor
+set local role authenticated;
+insert into public.library_items (parish_id, kind, title, published, published_at, author_id)
+  values ('00000000-0000-0000-0000-000000000001', 'manual', 'September 2026 Manual', true, now(), :'pastor')
+  returning id as lib_pub \gset
+insert into public.library_items (parish_id, kind, title, published)
+  values ('00000000-0000-0000-0000-000000000001', 'audio', 'Draft Sermon', false)
+  returning id as lib_draft \gset
+select public.t_assert((select count(*) = 1 from public.library_items where id = :'lib_draft'), 'LIB1: admin sees own draft');
+reset role;
+
+-- Member: sees the published item, never the draft.
+select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true);  -- Ada (member)
+set local role authenticated;
+select public.t_assert((select count(*) = 1 from public.library_items where id = :'lib_pub'), 'LIB2: member sees published item');
+select public.t_assert((select count(*) = 0 from public.library_items where id = :'lib_draft'), 'LIB3: member cannot see draft');
+do $lib$ begin
+  insert into public.library_items (parish_id, kind, title)
+    values ('00000000-0000-0000-0000-000000000001', 'book', 'Unauthorized');
+  perform public.t_assert(false, 'LIB4 expected a block: member cannot insert');
+exception when others then
+  perform public.t_assert(true, 'LIB4: member cannot write library items');
+end $lib$;
+reset role;
+
+-- Parish isolation: an other-parish member sees nothing.
+select set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000007', true);  -- other parish
+set local role authenticated;
+select public.t_assert((select count(*) = 0 from public.library_items where id = :'lib_pub'), 'LIB5: other-parish member cannot see the item');
+reset role;
 
 rollback;

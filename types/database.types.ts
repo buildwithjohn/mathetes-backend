@@ -693,6 +693,63 @@ export interface Database {
         };
         Relationships: [];
       };
+      library_items: {
+        Row: {
+          id: string;
+          parish_id: string;
+          kind: string;
+          title: string;
+          description: string | null;
+          author: string | null;
+          category: string | null;
+          cover_image_url: string | null;
+          file_url: string | null;
+          external_url: string | null;
+          duration_seconds: number | null;
+          published: boolean;
+          published_at: string | null;
+          author_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          parish_id: string;
+          kind: string;
+          title: string;
+          description?: string | null;
+          author?: string | null;
+          category?: string | null;
+          cover_image_url?: string | null;
+          file_url?: string | null;
+          external_url?: string | null;
+          duration_seconds?: number | null;
+          published?: boolean;
+          published_at?: string | null;
+          author_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          parish_id?: string;
+          kind?: string;
+          title?: string;
+          description?: string | null;
+          author?: string | null;
+          category?: string | null;
+          cover_image_url?: string | null;
+          file_url?: string | null;
+          external_url?: string | null;
+          duration_seconds?: number | null;
+          published?: boolean;
+          published_at?: string | null;
+          author_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       message_reactions: {
         Row: {
           message_id: string;
