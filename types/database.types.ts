@@ -1501,6 +1501,7 @@ export interface Database {
           verse_ref: string;
           verse_text: string;
           reflection_md: string | null;
+          prayer_md: string | null;
           prompt: string | null;
           author_id: string | null;
           publish_date: string | null;
@@ -1513,6 +1514,7 @@ export interface Database {
           verse_ref: string;
           verse_text: string;
           reflection_md?: string | null;
+          prayer_md?: string | null;
           prompt?: string | null;
           author_id?: string | null;
           publish_date?: string | null;
@@ -1525,6 +1527,7 @@ export interface Database {
           verse_ref?: string;
           verse_text?: string;
           reflection_md?: string | null;
+          prayer_md?: string | null;
           prompt?: string | null;
           author_id?: string | null;
           publish_date?: string | null;
@@ -1620,6 +1623,7 @@ export interface Database {
           verse_ref: string | null;
           verse_text: string | null;
           reflection_md: string | null;
+          prayer_md: string | null;
           prompt: string | null;
           author_id: string | null;
           publish_date: string | null;
@@ -1632,6 +1636,7 @@ export interface Database {
           verse_ref?: string | null;
           verse_text?: string | null;
           reflection_md?: string | null;
+          prayer_md?: string | null;
           prompt?: string | null;
           author_id?: string | null;
           publish_date?: string | null;
@@ -1644,6 +1649,7 @@ export interface Database {
           verse_ref?: string | null;
           verse_text?: string | null;
           reflection_md?: string | null;
+          prayer_md?: string | null;
           prompt?: string | null;
           author_id?: string | null;
           publish_date?: string | null;
