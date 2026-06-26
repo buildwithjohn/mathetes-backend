@@ -1,5 +1,7 @@
 # Mathetes Backend
 
+> 📖 **Source of truth: [`docs/CONTEXT.md`](docs/CONTEXT.md)** — overview, full migration history, security model, every RPC, edge functions, realtime/storage, cross-repo contracts, and outstanding tasks. Read it first.
+
 Supabase project for Mathetes: Postgres schema, migrations, RLS policies, edge
 functions, and seed data. Serves the CCCFSP FUOYE pilot parish (7 houses).
 
