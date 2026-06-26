@@ -4,10 +4,10 @@ The backend's own source of truth. Keep it current as the contract evolves.
 Cross-repo master doc: `mathetes-mobile/docs/WORKSPACE.md` (authoritative for the
 whole workspace — stay consistent with it; this file owns the backend detail).
 
-> Note: at the time of writing, `mathetes-mobile/docs/WORKSPACE.md` was **not
-> present** in the workspace checkout (mobile was at an older commit on
-> `claude/sharp-davinci-rHLiO`). Re-sync against it once it lands; flag any
-> conflict here.
+> Note: `mathetes-mobile/docs/WORKSPACE.md` is the cross-repo master and owns the
+> shared role/gating model (its §4, incl. the 0033 leader-reach decision). It
+> lives on the mobile `dev` branch; this file stays consistent with it and owns
+> the backend detail.
 
 ---
 
@@ -93,6 +93,7 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0030 | more_bible_versions | WEB + BSB + ASV version rows + 66 books each (text in `seed/{web,bsb,asv}.sql`) |
 | 0031 | library | `library_items` (books/manuals/audio/video) + RLS; widens `content-media` (PDF/images, 512 MB) |
 | 0032 | wotd_prayer | `word_of_day.prayer_md` (optional "Pray" markdown); recreates `todays_word_of_day` |
+| 0033 | leader_reach | **role-aware leader reach**: parish admins see the whole-parish directory (`user_profiles_select_leader_directory`); `create_dm` lets owner/pastor/admin DM any active parish member (cross-house + cross-gender bypassed) and lets a member DM their own disciples (discipler_id pointer); students unchanged |
 
 ---
 
@@ -103,6 +104,12 @@ grants. Core principles:
 
 - **Parish isolation** — content/chat scoped to the caller's parish via
   `current_parish_id()`. **House isolation** for house-scoped content.
+- **Directory visibility (`user_profiles` SELECT)** — any **active** member sees
+  active parish-mates (0025; self always visible). Parish **admins** additionally
+  see every in-parish profile of any status (0033 `user_profiles_select_leader_directory`)
+  plus null-parish pending signups (0027). Pending/suspended/rejected stay hidden
+  from students. `photo_visibility` is honoured in the app layer, not RLS (RLS is
+  row-level; the column is always returned).
 - **Self-escalation guard (0025/0028)** — a `BEFORE UPDATE` trigger
   (`guard_profile_protected_cols`, SECURITY INVOKER) blocks any client change to
   `role`, `status`, `parish_id`, `campus_id`, or `is_owner`. Only a parish admin
@@ -123,6 +130,12 @@ grants. Core principles:
   - **DMs (0029):** readable only by the two participants. House leaders/pastors
     have **no** passive DM read. A **reported** DM message is exposed to parish
     admin/pastor for that one message only (`messages_select_reported`).
+    - **DM initiation is role-aware (0033)** but oversight is **unchanged**:
+      `create_dm` lets leaders (owner/pastor/admin, and a member toward their own
+      disciples) *start* a cross-house/cross-gender DM for pastoral care. It does
+      not grant any new read path — a leader still can't browse DMs they aren't a
+      party to. After 0029 `chat.house_id` no longer drives DM access, so a
+      cross-house leader DM (house_id null) is fully readable by its two members.
   - **Discipler chats:** pastor has read-only oversight (accountability surface).
   - **Reading-plan reflections:** private; optionally shared with the
     subscriber's discipler only; no pastor/leader/admin path; no leaderboards.
@@ -157,7 +170,7 @@ app calls.)
 | `list_pending_members` | — | `table(id, name, email, created_at)` | `is_parish_admin()` (pastor + admin). Pending queue with email (auth.users isn't client-readable) |
 | `resolve_report` | `p_report uuid, p_status text` | `void` | **admin only** (0028). `p_status ∈ {reviewing,resolved,dismissed}`; parish-scoped; stamps resolver + time |
 | `answer_question` | `p_id text, p_response text, p_public boolean=false` | `ask_questions` | `is_parish_admin()` (pastor + admin). **Re-answer-guarded**: only an `awaiting` question can be answered (0028) |
-| `create_dm` | `p_other uuid` | `uuid` (chat id) | Member. Enforces **same non-null house** (B1) and **cross-gender approval** (B2); idempotent (reuses existing DM) |
+| `create_dm` | `p_other uuid` | `uuid` (chat id) | **Role-aware (0033).** Same parish + active target for everyone. **Students** (and house leaders): same non-null house (B1) + cross-gender approval (B2). **Leaders** — owner / pastor / admin, and any caller toward their **own disciples** (`discipler_id` pointer) — may DM any active parish member, cross-house, cross-gender approval bypassed (pastoral care). Idempotent (reuses existing DM, never re-gated) |
 | `subscribe_to_plan` | `p_plan_id uuid` | `uuid` (subscription id) | Active member. Refuses unpublished / out-of-parish plans; idempotent |
 | `complete_plan_day` | `p_day_id uuid, p_reflection_response text=null, p_share_with_discipler boolean=false` | `uuid` | Subscription owner. Records progress, advances `current_day`, completes on last day |
 | `toggle_plan_pause` | `p_subscription_id uuid` | `boolean` (new paused state) | Subscription owner |

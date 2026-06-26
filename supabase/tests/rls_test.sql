@@ -99,6 +99,15 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('0f111111-0000-0000-0000-000000000099', 'pending@x', '{"name":"Pending Pat"}');
 select id as pend from public.user_profiles where auth_id = '0f111111-0000-0000-0000-000000000099' \gset
 
+-- One SUSPENDED in-parish member (house null -> no chat fan-out) for the 0033
+-- leader-directory test: hidden from students, visible to parish admins.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('0f111111-0000-0000-0000-0000000000a8', 'susp@x', '{"name":"Suspended Sam"}');
+update public.user_profiles
+  set status = 'suspended', parish_id = '00000000-0000-0000-0000-000000000001', house_id = null
+  where auth_id = '0f111111-0000-0000-0000-0000000000a8';
+select id as susp from public.user_profiles where auth_id = '0f111111-0000-0000-0000-0000000000a8' \gset
+
 -- Profile ids for convenience.
 select id as ada  from public.user_profiles where auth_id = '0a000000-0000-0000-0000-000000000001' \gset
 select id as bode from public.user_profiles where auth_id = '0b000000-0000-0000-0000-000000000002' \gset
@@ -377,6 +386,53 @@ exception when others then
   perform public.t_assert(sqlerrm like '%cross-house DM blocked%',
     'B1: cross-house DM is blocked (no shared house leader)');
 end $b1$;
+
+-- 0033 LEADER REACH: owner/pastor/admin DM any active parish member (cross-house
+-- + cross-gender bypassed); a member reaches only their own disciples (pointer).
+
+-- Pastor (no house) DMs a member in Zion: a student would hit the no-shared-house
+-- block; the pastor's leader reach succeeds.
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true);  -- Pastor
+set local role authenticated;
+select public.t_assert(
+  public.create_dm((select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000001')) is not null,
+  'LEAD1: pastor DMs a cross-house member (leader reach)');
+reset role;
+
+-- Owner DMs Ms One (female, requires cross-gender approval) in Zion: the student
+-- gates would block on BOTH house and gender; the owner bypasses both.
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-0000000000aa', true);  -- Owner
+set local role authenticated;
+select public.t_assert(
+  public.create_dm((select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000003')) is not null,
+  'LEAD2: owner DMs cross-house + cross-gender (bypasses both gates)');
+-- A NON-active target is still refused, even for the owner.
+do $lead3$
+declare v uuid;
+begin
+  v := public.create_dm((select id from public.user_profiles where auth_id = '0f111111-0000-0000-0000-0000000000a8'));
+  perform public.t_assert(false, 'LEAD3 expected a block on a suspended target');
+exception when others then
+  perform public.t_assert(sqlerrm like '%not an active member%',
+    'LEAD3: leader cannot DM a non-active member');
+end $lead3$;
+reset role;
+
+-- Discipler reach is scoped to one's OWN disciples (pointer), not all members:
+-- disc is Ada's discipler but NOT Bethel One's, so a cross-house DM there is
+-- still blocked exactly like any student's.
+select set_config('request.jwt.claim.sub', '0e000000-0000-0000-0000-000000000005', true);  -- Discipler (of Ada)
+set local role authenticated;
+do $lead4$
+declare v uuid;
+begin
+  v := public.create_dm((select id from public.user_profiles where auth_id = '0f000000-0000-0000-0000-000000000006'));
+  perform public.t_assert(false, 'LEAD4 expected a cross-house block for a non-disciple target');
+exception when others then
+  perform public.t_assert(sqlerrm like '%cross-house DM blocked%',
+    'LEAD4: discipler reach does not extend to non-disciples');
+end $lead4$;
+reset role;
 reset role;
 
 -- ===========================================================================
@@ -496,6 +552,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);  -- Bode (active)
 set local role authenticated;
 select public.t_assert((select count(*) = 0 from public.user_profiles where id = :'pend'), 'GATE4: pending member hidden from directory');
+select public.t_assert((select count(*) = 0 from public.user_profiles where id = :'susp'), 'GATE4b: suspended member hidden from a student directory');
 reset role;
 
 -- Pending member sees only themselves and can read no parish chat.
@@ -510,6 +567,7 @@ select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004
 set local role authenticated;
 select public.t_assert((select count(*) >= 1 from public.user_profiles where status = 'pending'), 'GATE6b: admin sees pending signups');
 select public.t_assert((select count(*) >= 1 from public.list_pending_members()), 'GATE6c: list_pending_members returns the queue');
+select public.t_assert((select count(*) = 1 from public.user_profiles where id = :'susp'), 'GATE6d: parish admin sees a suspended in-parish member (0033 leader directory)');
 reset role;
 
 -- Non-admin cannot approve.
