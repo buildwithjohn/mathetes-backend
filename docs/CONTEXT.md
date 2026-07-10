@@ -94,6 +94,7 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0031 | library | `library_items` (books/manuals/audio/video) + RLS; widens `content-media` (PDF/images, 512 MB) |
 | 0032 | wotd_prayer | `word_of_day.prayer_md` (optional "Pray" markdown); recreates `todays_word_of_day` |
 | 0033 | leader_reach | **role-aware leader reach**: parish admins see the whole-parish directory (`user_profiles_select_leader_directory`); `create_dm` lets owner/pastor/admin DM any active parish member (cross-house + cross-gender bypassed) and lets a member DM their own disciples (discipler_id pointer); students unchanged |
+| 0034 | open_dms | **fully open DMs** (John's decision): `create_dm` lets ANY active member DM any other active parish member; removes the cross-house (B1) and cross-gender-approval (B2) gates entirely (supersedes 0033's create_dm). Kept: same parish + active target. Oversight unchanged (0029) |
 
 ---
 
@@ -170,7 +171,7 @@ app calls.)
 | `list_pending_members` | — | `table(id, name, email, created_at)` | `is_parish_admin()` (pastor + admin). Pending queue with email (auth.users isn't client-readable) |
 | `resolve_report` | `p_report uuid, p_status text` | `void` | **admin only** (0028). `p_status ∈ {reviewing,resolved,dismissed}`; parish-scoped; stamps resolver + time |
 | `answer_question` | `p_id text, p_response text, p_public boolean=false` | `ask_questions` | `is_parish_admin()` (pastor + admin). **Re-answer-guarded**: only an `awaiting` question can be answered (0028) |
-| `create_dm` | `p_other uuid` | `uuid` (chat id) | **Role-aware (0033).** Same parish + active target for everyone. **Students** (and house leaders): same non-null house (B1) + cross-gender approval (B2). **Leaders** — owner / pastor / admin, and any caller toward their **own disciples** (`discipler_id` pointer) — may DM any active parish member, cross-house, cross-gender approval bypassed (pastoral care). Idempotent (reuses existing DM, never re-gated) |
+| `create_dm` | `p_other uuid` | `uuid` (chat id) | **Fully open (0034).** Any active member may DM any other **active** member in the **same parish**. No house or cross-gender gate (both removed; supersedes 0033's role-aware version). Idempotent (reuses existing DM, never re-gated). Oversight unchanged (0029: DMs private to participants) |
 | `subscribe_to_plan` | `p_plan_id uuid` | `uuid` (subscription id) | Active member. Refuses unpublished / out-of-parish plans; idempotent |
 | `complete_plan_day` | `p_day_id uuid, p_reflection_response text=null, p_share_with_discipler boolean=false` | `uuid` | Subscription owner. Records progress, advances `current_day`, completes on last day |
 | `toggle_plan_pause` | `p_subscription_id uuid` | `boolean` (new paused state) | Subscription owner |

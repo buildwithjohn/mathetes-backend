@@ -365,27 +365,16 @@ select public.t_assert(
   public.create_dm((select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000004')) is not null,
   'B2: cross-gender DM to opted-out recipient succeeds');
 
--- B2: cross-gender DM to a recipient who requires approval is blocked.
-do $b2$
-declare v uuid;
-begin
-  v := public.create_dm((select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000003'));
-  perform public.t_assert(false, 'B2 gate: expected a block, but the DM was created');
-exception when others then
-  perform public.t_assert(sqlerrm like '%cross-gender DM requires recipient approval%',
-    'B2: cross-gender DM (approval required) is blocked');
-end $b2$;
+-- Fully open (0034): cross-gender DM to an approval-required recipient now
+-- succeeds -- the approval gate is removed.
+select public.t_assert(
+  public.create_dm((select id from public.user_profiles where auth_id = '0d111111-0000-0000-0000-000000000003')) is not null,
+  'OPEN: cross-gender DM (was approval-required) now succeeds');
 
--- B1: cross-house DM is blocked (Mr One in Berea -> Bethel One in Bethel).
-do $b1$
-declare v uuid;
-begin
-  v := public.create_dm((select id from public.user_profiles where auth_id = '0f000000-0000-0000-0000-000000000006'));
-  perform public.t_assert(false, 'B1 gate: expected a block, but the DM was created');
-exception when others then
-  perform public.t_assert(sqlerrm like '%cross-house DM blocked%',
-    'B1: cross-house DM is blocked (no shared house leader)');
-end $b1$;
+-- Fully open (0034): cross-house DM now succeeds (Mr One in Berea -> Bethel One).
+select public.t_assert(
+  public.create_dm((select id from public.user_profiles where auth_id = '0f000000-0000-0000-0000-000000000006')) is not null,
+  'OPEN: cross-house DM now succeeds');
 
 -- 0033 LEADER REACH: owner/pastor/admin DM any active parish member (cross-house
 -- + cross-gender bypassed); a member reaches only their own disciples (pointer).
@@ -418,20 +407,13 @@ exception when others then
 end $lead3$;
 reset role;
 
--- Discipler reach is scoped to one's OWN disciples (pointer), not all members:
--- disc is Ada's discipler but NOT Bethel One's, so a cross-house DM there is
--- still blocked exactly like any student's.
-select set_config('request.jwt.claim.sub', '0e000000-0000-0000-0000-000000000005', true);  -- Discipler (of Ada)
+-- Fully open (0034): a regular member can now DM any active member across
+-- houses (disc -> Bethel One, different houses, no shared discipler).
+select set_config('request.jwt.claim.sub', '0e000000-0000-0000-0000-000000000005', true);  -- a regular member
 set local role authenticated;
-do $lead4$
-declare v uuid;
-begin
-  v := public.create_dm((select id from public.user_profiles where auth_id = '0f000000-0000-0000-0000-000000000006'));
-  perform public.t_assert(false, 'LEAD4 expected a cross-house block for a non-disciple target');
-exception when others then
-  perform public.t_assert(sqlerrm like '%cross-house DM blocked%',
-    'LEAD4: discipler reach does not extend to non-disciples');
-end $lead4$;
+select public.t_assert(
+  public.create_dm((select id from public.user_profiles where auth_id = '0f000000-0000-0000-0000-000000000006')) is not null,
+  'OPEN: any member DMs any active member across houses');
 reset role;
 reset role;
 
