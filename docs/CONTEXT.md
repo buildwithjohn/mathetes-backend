@@ -43,7 +43,7 @@ migrations are applied **out-of-band by the operator**:
 - Every migration is **idempotent** (`create … if not exists`, `create or
   replace`, `drop policy if exists`, `on conflict do nothing`) — safe to re-run.
 
-**Repo HEAD: migration `0032`.** Prod is applied piecemeal; confirm what's live:
+**Repo HEAD: migration `0038`.** Prod is applied piecemeal; confirm what's live:
 ```sql
 select version, name from supabase_migrations.schema_migrations order by version;
 -- or, if the schema_migrations table isn't populated (applied via editor),
@@ -95,6 +95,10 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0032 | wotd_prayer | `word_of_day.prayer_md` (optional "Pray" markdown); recreates `todays_word_of_day` |
 | 0033 | leader_reach | **role-aware leader reach**: parish admins see the whole-parish directory (`user_profiles_select_leader_directory`); `create_dm` lets owner/pastor/admin DM any active parish member (cross-house + cross-gender bypassed) and lets a member DM their own disciples (discipler_id pointer); students unchanged |
 | 0034 | open_dms | **fully open DMs** (John's decision): `create_dm` lets ANY active member DM any other active parish member; removes the cross-house (B1) and cross-gender-approval (B2) gates entirely (supersedes 0033's create_dm). Kept: same parish + active target. Oversight unchanged (0029) |
+| 0035 | content_reliability | durable devotional bookmarks; date-safe publishing; notification delivery hardening |
+| 0036 | content_covers | editorial cover-image columns for Word and devotional content |
+| 0037 | word_notes | private reflections attached to a Word of the Day |
+| 0038 | formation_practices | private rhythm activities + Scripture collections; opt-in House Quests/Campus Missions; Fellowship Events + private RSVPs; answered-prayer markers; no public scores or leaderboards |
 
 ---
 

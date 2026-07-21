@@ -741,4 +741,67 @@ select public.t_assert(
 );
 reset role;
 
+-- ===========================================================================
+-- 16. FORMATION PRACTICES (0038): private rhythms, scoped shared practices
+-- ===========================================================================
+select id as berea_house from public.houses where slug = 'berea' \gset
+select id as zion_house from public.houses where slug = 'zion' \gset
+select id as oye_campus from public.campuses where slug = 'oye' \gset
+select id as sample_verse from public.bible_verses order by id limit 1 \gset
+
+-- An admin authors one Berea House Quest and one parish-wide fellowship card.
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-0000000000ab', true);
+set local role authenticated;
+insert into public.formation_campaigns (
+  parish_id, kind, title, body, house_id, starts_on, ends_on, published, published_at
+) values (
+  '00000000-0000-0000-0000-000000000001', 'house_quest', 'Pray for one person',
+  'Ask one friend how you can pray for them this week.', :'berea_house', current_date,
+  current_date + 7, true, now()
+) returning id as quest \gset
+insert into public.fellowship_events (
+  parish_id, title, description, starts_at, published, published_at
+) values (
+  '00000000-0000-0000-0000-000000000001', 'Family worship night',
+  'A simple night of worship and prayer together.', now() + interval '2 days', true, now()
+) returning id as f_event \gset
+reset role;
+
+-- Ada's rhythm and Scripture collection are hers alone.
+select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true);
+set local role authenticated;
+select public.record_formation_activity('word_read', 'john-3');
+insert into public.scripture_collections (user_id, title, color)
+  values (:'ada', 'When I need courage', 'blue') returning id as collection \gset
+insert into public.scripture_collection_verses (collection_id, verse_id)
+  values (:'collection', :'sample_verse');
+insert into public.formation_campaign_completions (campaign_id, user_id, note)
+  values (:'quest', :'ada', 'Prayed with my roommate.');
+insert into public.fellowship_event_rsvps (event_id, user_id, response)
+  values (:'f_event', :'ada', 'going');
+select public.mark_prayer_answered(:'preq', 'The exam went well.');
+select public.t_assert((select count(*) = 1 from public.formation_activities where user_id = :'ada'), 'FORM1: member sees own rhythm activity');
+select public.t_assert((select count(*) = 1 from public.scripture_collections where id = :'collection'), 'FORM2: member sees own Scripture collection');
+select public.t_assert((select count(*) = 1 from public.formation_campaigns where id = :'quest'), 'FORM3: member sees published quest for own house');
+select public.t_assert((select count(*) = 1 from public.fellowship_events where id = :'f_event'), 'FORM4: member sees published parish event');
+select public.t_assert((select answered_at is not null from public.prayer_requests where id = :'preq'), 'FORM5: author can mark own prayer answered');
+reset role;
+
+-- Bode shares Ada's house, but never sees her private formation data or RSVP.
+select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);
+set local role authenticated;
+select public.t_assert((select count(*) = 0 from public.formation_activities where user_id = :'ada'), 'FORM6: house-mate cannot see private rhythm');
+select public.t_assert((select count(*) = 0 from public.scripture_collections where id = :'collection'), 'FORM7: house-mate cannot see private Scripture collection');
+select public.t_assert((select count(*) = 0 from public.formation_campaign_completions where campaign_id = :'quest'), 'FORM8: house-mate cannot see another completion');
+select public.t_assert((select count(*) = 0 from public.fellowship_event_rsvps where event_id = :'f_event' and user_id = :'ada'), 'FORM9: house-mate cannot see another RSVP');
+select public.t_assert((select count(*) = 1 from public.formation_campaigns where id = :'quest'), 'FORM10: house-mate sees own house quest');
+reset role;
+
+-- Zion is in the same parish, but cannot see the Berea-only House Quest.
+select set_config('request.jwt.claim.sub', '0d111111-0000-0000-0000-000000000001', true);
+set local role authenticated;
+select public.t_assert(public.current_house_id() = :'zion_house', 'FORM11a: Zion fixture is outside Berea');
+select public.t_assert((select count(*) = 0 from public.formation_campaigns where id = :'quest'), 'FORM11: another house cannot see Berea quest');
+reset role;
+
 rollback;
