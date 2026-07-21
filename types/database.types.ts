@@ -1548,6 +1548,12 @@ export interface Database {
         };
         Relationships: [];
       };
+      word_notes: {
+        Row: { id: string; user_id: string; word_of_day_id: string; body: string; created_at: string; updated_at: string };
+        Insert: { id?: string; user_id: string; word_of_day_id: string; body?: string; created_at?: string; updated_at?: string };
+        Update: { id?: string; user_id?: string; word_of_day_id?: string; body?: string; created_at?: string; updated_at?: string };
+        Relationships: [];
+      };
     };
     Views: {
       public_qa: {
