@@ -99,6 +99,7 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0036 | content_covers | editorial cover-image columns for Word and devotional content |
 | 0037 | word_notes | private reflections attached to a Word of the Day |
 | 0038 | formation_practices | private rhythm activities + Scripture collections; opt-in House Quests/Campus Missions; Fellowship Events + private RSVPs; answered-prayer markers; no public scores or leaderboards |
+| 0039 | member_deletions | durable service-role audit snapshots for intentional member-account deletions |
 
 ---
 

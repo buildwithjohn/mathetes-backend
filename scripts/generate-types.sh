@@ -18,6 +18,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 OUT="types/database.types.ts"
+ALIASES="types/database.aliases.ts"
 PROJECT_ID="${SUPABASE_PROJECT_ID:-}"
 mkdir -p types
 
@@ -33,6 +34,11 @@ if command -v supabase >/dev/null 2>&1; then
 else
   echo "Supabase CLI not found; leaving the existing $OUT untouched." >&2
   echo "Install the CLI (and Docker), or set SUPABASE_PROJECT_ID + run 'supabase login'." >&2
+fi
+
+if [ -f "$ALIASES" ]; then
+  printf '\n\n' >> "$OUT"
+  cat "$ALIASES" >> "$OUT"
 fi
 
 # Propagate to sibling repos if present.
