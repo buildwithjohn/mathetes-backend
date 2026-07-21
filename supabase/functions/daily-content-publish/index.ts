@@ -7,31 +7,47 @@
 // against re-notifying if the job runs more than once in a day.
 import { serviceClient, json } from "../_shared/supabase.ts";
 
+function lagosDate(): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: "year" | "month" | "day") =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
 Deno.serve(async () => {
   const supabase = serviceClient();
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  const today = lagosDate();
 
   // 1. Publish anything scheduled for today or earlier.
-  await supabase
+  const { data: publishedDevotionals, error: devotionalError } = await supabase
     .from("devotionals")
     .update({ status: "published" })
     .eq("status", "scheduled")
-    .lte("publish_date", today);
+    .lte("publish_date", today)
+    .select("id");
+  if (devotionalError) return json({ error: devotionalError.message }, 500);
 
-  const { data: publishedWotd } = await supabase
+  const { data: publishedWotd, error: publishError } = await supabase
     .from("word_of_day")
     .update({ status: "published" })
     .eq("status", "scheduled")
     .lte("publish_date", today)
     .select("id, parish_id, verse_ref, publish_date");
+  if (publishError) return json({ error: publishError.message }, 500);
 
   // Also pick up WOTD already published for today (covers content created as
   // 'published' directly), so members still get the morning notification.
-  const { data: todaysWotd } = await supabase
+  const { data: todaysWotd, error: todayError } = await supabase
     .from("word_of_day")
     .select("id, parish_id, verse_ref, publish_date")
     .eq("status", "published")
     .eq("publish_date", today);
+  if (todayError) return json({ error: todayError.message }, 500);
 
   const wotdByParish = new Map<string, { id: string; verse_ref: string }>();
   for (const w of [...(publishedWotd ?? []), ...(todaysWotd ?? [])]) {
@@ -43,7 +59,8 @@ Deno.serve(async () => {
     const { data: members } = await supabase
       .from("user_profiles")
       .select("id")
-      .eq("parish_id", parishId);
+      .eq("parish_id", parishId)
+      .eq("status", "active");
     if (!members || members.length === 0) continue;
 
     // Skip members who already have today's WOTD notification (re-run guard).
@@ -67,9 +84,16 @@ Deno.serve(async () => {
 
     if (rows.length > 0) {
       const { error } = await supabase.from("notifications").insert(rows);
-      if (!error) notified += rows.length;
+      if (error) return json({ error: error.message }, 500);
+      notified += rows.length;
     }
   }
 
-  return json({ date: today, parishes_notified: wotdByParish.size, notifications: notified });
+  return json({
+    date: today,
+    devotionals_published: publishedDevotionals?.length ?? 0,
+    words_published: publishedWotd?.length ?? 0,
+    parishes_notified: wotdByParish.size,
+    notifications: notified,
+  });
 });

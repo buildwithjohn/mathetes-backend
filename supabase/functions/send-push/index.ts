@@ -19,6 +19,8 @@ interface ExpoMessage {
   body: string;
   data: Record<string, unknown>;
   sound: "default";
+  priority: "high";
+  channelId: "default";
 }
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
@@ -61,8 +63,14 @@ Deno.serve(async (req) => {
     to: t.expo_token,
     title: n.title,
     body: n.preview ?? "",
-    data: { notificationId: n.id, type: n.type, url: n.target_url },
+    data: {
+      notificationId: n.id,
+      type: n.type,
+      target_url: n.target_url,
+    },
     sound: "default",
+    priority: "high",
+    channelId: "default",
   }));
 
   const res = await fetch(EXPO_PUSH_URL, {
@@ -75,6 +83,9 @@ Deno.serve(async (req) => {
     body: JSON.stringify(messages),
   });
   const result = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return json({ error: "Expo push request failed", details: result }, 502);
+  }
 
   // Prune tokens Expo reports as unregistered/invalid.
   const tickets = result?.data ?? [];

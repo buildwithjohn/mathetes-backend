@@ -689,4 +689,56 @@ set local role authenticated;
 select public.t_assert((select count(*) = 0 from public.library_items where id = :'lib_pub'), 'LIB5: other-parish member cannot see the item');
 reset role;
 
+-- ===========================================================================
+-- 15. CONTENT RELIABILITY + DEVOTIONAL SAVES (0035)
+-- ===========================================================================
+select set_config('request.jwt.claim.sub', '0d000000-0000-0000-0000-000000000004', true); -- Pastor
+set local role authenticated;
+insert into public.devotionals (
+  id, parish_id, title, body_md, publish_date, status
+) values (
+  '00000000-0000-0000-0000-0000000d3501',
+  '00000000-0000-0000-0000-000000000001',
+  'Due scheduled devotional', 'Body', current_date - 100, 'scheduled'
+);
+insert into public.devotionals (
+  id, parish_id, title, body_md, publish_date, status
+) values (
+  '00000000-0000-0000-0000-0000000d3502',
+  '00000000-0000-0000-0000-000000000001',
+  'Future scheduled devotional', 'Body', current_date + 100, 'scheduled'
+);
+reset role;
+
+select public.t_assert(
+  (select status = 'published' from public.devotionals where id = '00000000-0000-0000-0000-0000000d3501'),
+  'CONTENT1: due scheduled content publishes immediately on write'
+);
+
+select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true); -- Ada
+set local role authenticated;
+select public.t_assert(
+  (select count(*) = 1 from public.devotionals where id = '00000000-0000-0000-0000-0000000d3501'),
+  'CONTENT2: member can read due content'
+);
+select public.t_assert(
+  (select count(*) = 0 from public.devotionals where id = '00000000-0000-0000-0000-0000000d3502'),
+  'CONTENT3: member cannot read future scheduled content'
+);
+insert into public.devotional_bookmarks (user_id, devotional_id)
+  values (:'ada', '00000000-0000-0000-0000-0000000d3501');
+select public.t_assert(
+  (select count(*) = 1 from public.devotional_bookmarks where user_id = :'ada'),
+  'CONTENT4: member can persist a devotional bookmark'
+);
+reset role;
+
+select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true); -- Bode
+set local role authenticated;
+select public.t_assert(
+  (select count(*) = 0 from public.devotional_bookmarks where user_id = :'ada'),
+  'CONTENT5: devotional bookmarks are private'
+);
+reset role;
+
 rollback;

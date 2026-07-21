@@ -243,6 +243,12 @@ export interface Database {
         };
         Relationships: [];
       };
+      devotional_bookmarks: {
+        Row: { id: string; user_id: string; devotional_id: string; created_at: string };
+        Insert: { id?: string; user_id: string; devotional_id: string; created_at?: string };
+        Update: { id?: string; user_id?: string; devotional_id?: string; created_at?: string };
+        Relationships: [];
+      };
       campuses: {
         Row: {
           id: string;

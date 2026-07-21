@@ -294,3 +294,23 @@ Operator / decision items (most code work through 0032 is done):
    devotional content TBD.
 9. *(Optional, offered)* default-translation preference so a user's Bible choice
    persists; placeholder Library items for first render.
+
+### 0035 reliability contract
+
+- Due `scheduled` devotionals/WOTD are readable on their publish date even if
+  the external cron is late; future scheduled content remains hidden. Writes
+  scheduled for today/past are promoted immediately by a database trigger.
+- Devotional saves persist in `devotional_bookmarks` and are private to the
+  member under RLS.
+- Message inserts already create `notifications` rows. Remote delivery still
+  requires the production Database Webhook (`notifications` INSERT →
+  `send-push`) and Expo/FCM credentials. `send-push` uses `target_url`, matching
+  mobile deep-link handling, and Android high-priority delivery.
+- `daily-content-publish` uses the Africa/Lagos calendar date. The cron remains
+  useful for status promotion and morning notifications, but is no longer a
+  content-availability dependency.
+- **Production cron:** run `scripts/cloud_enable_daily_publisher.sql` once in
+  Supabase SQL Editor. It invokes `daily-content-publish` at **00:01 WAT**
+  (23:01 UTC) every day. This is an operator script rather than a normal
+  migration because pg_cron/pg_net are managed Supabase extensions and are not
+  available in the lightweight local RLS test database.
