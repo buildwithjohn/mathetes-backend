@@ -26,6 +26,11 @@ interface ExpoMessage {
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
 Deno.serve(async (req) => {
+  const webhookSecret = Deno.env.get("SEND_PUSH_WEBHOOK_SECRET");
+  if (!webhookSecret || req.headers.get("x-mathetes-webhook") !== webhookSecret) {
+    return json({ error: "unauthorized" }, 401);
+  }
+
   let payload: WebhookPayload<NotificationRow>;
   try {
     payload = await req.json();

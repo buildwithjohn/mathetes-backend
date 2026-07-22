@@ -5,7 +5,7 @@ two by a **schedule**.
 
 | Function | Trigger | What it does |
 |----------|---------|--------------|
-| `send-push` | Webhook: `INSERT` on `public.notifications` | Sends Expo push to the recipient's `push_tokens`, honours the per-type push preference, prunes dead tokens |
+| `send-push` | DB trigger: `INSERT` on `public.notifications` → `pg_net` HTTP call | Sends Expo push to the recipient's `push_tokens`, honours the per-type push preference, prunes dead tokens. Requires matching `SEND_PUSH_WEBHOOK_SECRET` Edge secret + Vault `mathetes_send_push_webhook` secret. |
 | `moderate-message` | Webhook: `INSERT` on `public.messages` | OpenAI moderation; soft-deletes flagged messages and writes `moderation_log` |
 | `daily-content-publish` | Schedule: `1 23 * * *` UTC (00:01 WAT) | Publishes scheduled WOTD/devotionals for the day; notifies parish members of today's Word |
 | `archive-term` | Schedule: daily | Soft-archives house/discipler/DM messages `ARCHIVE_AFTER_DAYS` after `TERM_END_DATE` (dry-run unless `ARCHIVE_CONFIRM=true`) |

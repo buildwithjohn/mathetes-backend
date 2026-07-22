@@ -43,7 +43,7 @@ migrations are applied **out-of-band by the operator**:
 - Every migration is **idempotent** (`create … if not exists`, `create or
   replace`, `drop policy if exists`, `on conflict do nothing`) — safe to re-run.
 
-**Repo HEAD: migration `0038`.** Prod is applied piecemeal; confirm what's live:
+**Repo HEAD: migration `0041`.** Prod is applied piecemeal; confirm what's live:
 ```sql
 select version, name from supabase_migrations.schema_migrations order by version;
 -- or, if the schema_migrations table isn't populated (applied via editor),
@@ -100,6 +100,8 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0037 | word_notes | private reflections attached to a Word of the Day |
 | 0038 | formation_practices | private rhythm activities + Scripture collections; opt-in House Quests/Campus Missions; Fellowship Events + private RSVPs; answered-prayer markers; no public scores or leaderboards |
 | 0039 | member_deletions | durable service-role audit snapshots for intentional member-account deletions |
+| 0040 | notification_delivery | devotional + immediately-published Word notification fan-out; adds `devotional` notification type |
+| 0041 | push_webhook_delivery | secure, database-owned `notifications` → `send-push` pg_net delivery trigger (Vault/Edge shared secret) |
 
 ---
 
@@ -202,7 +204,7 @@ outside the migration chain by design — they depend on `pg_net`/`pg_cron`).
 
 | Function | Trigger | Contract |
 |----------|---------|----------|
-| `send-push` | Webhook: INSERT on `notifications` | Sends Expo push to recipient `push_tokens`, honours per-type pref, prunes dead tokens |
+| `send-push` | `trg_queue_push_delivery`: INSERT on `notifications` → secure `pg_net` call | Sends Expo push to recipient `push_tokens`, honours per-type pref, prunes dead tokens. Requires matching Edge `SEND_PUSH_WEBHOOK_SECRET` + Vault `mathetes_send_push_webhook` |
 | `moderate-message` | Webhook: INSERT on `messages` | OpenAI moderation; soft-deletes flagged messages, writes `moderation_log` |
 | `daily-content-publish` | Cron `1 0 * * *` | Publishes scheduled WOTD/devotionals; notifies parish of today's Word |
 | `archive-term` | Cron daily | Soft-archives house/discipler/DM messages `ARCHIVE_AFTER_DAYS` after `TERM_END_DATE` (dry-run unless `ARCHIVE_CONFIRM=true`) |
