@@ -108,6 +108,9 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0045 | circles_and_prayer_meetings | private student-created Circle chats, editable membership/photo/roles, and LiveKit audio/video prayer rooms |
 | 0046 | circle_recordings | host-controlled Circle teaching recordings, private R2 media, status/audit metadata, Circle-only RLS and realtime |
 | 0047 | member_profile_presence | optional member bio and current thought, constrained to existing active-parish profile visibility |
+| 0048 | content_signals | parish-visible live Amen/share totals for published daily Word and devotionals; each member contributes once, identities remain private, no rankings |
+| 0049 | saved_daily_content | durable Word bookmarks and private devotional reflections, both restricted to the member and already-visible parish content |
+| 0050 | formation_badges | private, idempotent formation milestones awarded from activity logging; no public scores, leaderboards, or member-to-member visibility |
 
 ---
 
@@ -368,3 +371,21 @@ Operator / decision items (most code work through 0032 is done):
   the existing `user_profiles` RLS rule—there is no public profile, follower
   graph, or activity feed. `thought_updated_at` records when a current thought
   was last changed.
+
+### 0048–0049 Daily encouragement and library
+
+- Daily Word and devotionals have live **Amen** and **Share** totals scoped to
+  the parish. Per-member contribution rows are never readable by clients;
+  clients receive only aggregate counts and their own Amen state. This is a
+  quiet encouragement mechanism, not a feed, ranking, or social score.
+- `word_bookmarks`, `word_notes`, `devotional_bookmarks`, and
+  `devotional_notes` are private to their creator. A saved item or reflection
+  can only target daily content already visible in that member's parish.
+
+### 0050 Formation badges
+
+- `formation_badges` defines a small set of universal milestones and
+  `member_badges` is readable only by its owner. The trusted activity logger
+  awards badges idempotently after a real practice (Word, devotional,
+  reflection, prayer, plan day, share, or shared practice). There is no admin
+  report of who has or has not earned one.

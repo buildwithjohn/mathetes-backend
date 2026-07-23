@@ -714,6 +714,86 @@ export type Database = {
           },
         ]
       }
+      content_signal_counts: {
+        Row: {
+          amen_count: number
+          content_id: string
+          content_kind: string
+          parish_id: string
+          share_count: number
+          updated_at: string
+        }
+        Insert: {
+          amen_count?: number
+          content_id: string
+          content_kind: string
+          parish_id: string
+          share_count?: number
+          updated_at?: string
+        }
+        Update: {
+          amen_count?: number
+          content_id?: string
+          content_kind?: string
+          parish_id?: string
+          share_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_signal_counts_parish_id_fkey"
+            columns: ["parish_id"]
+            isOneToOne: false
+            referencedRelation: "parishes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_signals: {
+        Row: {
+          content_id: string
+          content_kind: string
+          created_at: string
+          id: string
+          parish_id: string
+          signal: string
+          user_id: string
+        }
+        Insert: {
+          content_id: string
+          content_kind: string
+          created_at?: string
+          id?: string
+          parish_id: string
+          signal: string
+          user_id: string
+        }
+        Update: {
+          content_id?: string
+          content_kind?: string
+          created_at?: string
+          id?: string
+          parish_id?: string
+          signal?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_signals_parish_id_fkey"
+            columns: ["parish_id"]
+            isOneToOne: false
+            referencedRelation: "parishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_signals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devotional_bookmarks: {
         Row: {
           created_at: string
@@ -750,6 +830,55 @@ export type Database = {
           },
           {
             foreignKeyName: "devotional_bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devotional_notes: {
+        Row: {
+          body: string
+          created_at: string
+          devotional_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          devotional_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          devotional_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devotional_notes_devotional_id_fkey"
+            columns: ["devotional_id"]
+            isOneToOne: false
+            referencedRelation: "devotionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devotional_notes_devotional_id_fkey"
+            columns: ["devotional_id"]
+            isOneToOne: false
+            referencedRelation: "todays_devotional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devotional_notes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
@@ -1168,6 +1297,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      formation_badges: {
+        Row: {
+          description: string
+          icon: string
+          key: string
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          description: string
+          icon: string
+          key: string
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          description?: string
+          icon?: string
+          key?: string
+          sort_order?: number
+          title?: string
+        }
+        Relationships: []
       }
       formation_campaign_completions: {
         Row: {
@@ -1604,6 +1757,39 @@ export type Database = {
             columns: ["parish_id"]
             isOneToOne: false
             referencedRelation: "parishes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_badges: {
+        Row: {
+          badge_key: string
+          earned_at: string
+          user_id: string
+        }
+        Insert: {
+          badge_key: string
+          earned_at?: string
+          user_id: string
+        }
+        Update: {
+          badge_key?: string
+          earned_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_badges_badge_key_fkey"
+            columns: ["badge_key"]
+            isOneToOne: false
+            referencedRelation: "formation_badges"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "member_badges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2805,6 +2991,49 @@ export type Database = {
           },
         ]
       }
+      word_bookmarks: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          word_of_day_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          word_of_day_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          word_of_day_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "word_bookmarks_word_of_day_id_fkey"
+            columns: ["word_of_day_id"]
+            isOneToOne: false
+            referencedRelation: "todays_word_of_day"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "word_bookmarks_word_of_day_id_fkey"
+            columns: ["word_of_day_id"]
+            isOneToOne: false
+            referencedRelation: "word_of_day"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       word_notes: {
         Row: {
           body: string
@@ -3119,6 +3348,11 @@ export type Database = {
         Returns: undefined
       }
       archive_circle: { Args: { p_chat: string }; Returns: undefined }
+      assert_signalable_content: {
+        Args: { p_content: string; p_kind: string }
+        Returns: string
+      }
+      award_formation_badges: { Args: { p_user: string }; Returns: undefined }
       can_manage_circle_image: { Args: { p_path: string }; Returns: boolean }
       can_post_chat: { Args: { p_chat: string }; Returns: boolean }
       can_read_chat: { Args: { p_chat: string }; Returns: boolean }
@@ -3135,6 +3369,14 @@ export type Database = {
           p_share_with_discipler?: boolean
         }
         Returns: string
+      }
+      content_signal_summary: {
+        Args: { p_content: string; p_kind: string }
+        Returns: {
+          amen_count: number
+          my_amen: boolean
+          share_count: number
+        }[]
       }
       create_circle: {
         Args: {
@@ -3229,6 +3471,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_content_share: {
+        Args: { p_content: string; p_kind: string }
+        Returns: number
+      }
       record_formation_activity: {
         Args: { p_kind: string; p_target_key?: string }
         Returns: undefined
@@ -3260,6 +3506,10 @@ export type Database = {
       }
       set_my_campus: { Args: { p_campus: string }; Returns: undefined }
       subscribe_to_plan: { Args: { p_plan_id: string }; Returns: string }
+      toggle_content_amen: {
+        Args: { p_content: string; p_kind: string }
+        Returns: boolean
+      }
       toggle_plan_pause: {
         Args: { p_subscription_id: string }
         Returns: boolean
@@ -3507,6 +3757,12 @@ export type FellowshipEvent = Tables<"fellowship_events">;
 export type FellowshipEventRsvp = Tables<"fellowship_event_rsvps">;
 export type CircleMeeting = Tables<"circle_meetings">;
 export type CircleRecording = Tables<"circle_recordings">;
+export type ContentSignal = Tables<"content_signals">;
+export type ContentSignalCount = Tables<"content_signal_counts">;
+export type WordBookmark = Tables<"word_bookmarks">;
+export type DevotionalNote = Tables<"devotional_notes">;
+export type FormationBadge = Tables<"formation_badges">;
+export type MemberBadge = Tables<"member_badges">;
 
 export type ChapterVerse = { number: number; text: string };
 export type ChapterPayload = {

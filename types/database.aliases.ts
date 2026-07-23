@@ -90,6 +90,12 @@ export type FellowshipEvent = Tables<"fellowship_events">;
 export type FellowshipEventRsvp = Tables<"fellowship_event_rsvps">;
 export type CircleMeeting = Tables<"circle_meetings">;
 export type CircleRecording = Tables<"circle_recordings">;
+export type ContentSignal = Tables<"content_signals">;
+export type ContentSignalCount = Tables<"content_signal_counts">;
+export type WordBookmark = Tables<"word_bookmarks">;
+export type DevotionalNote = Tables<"devotional_notes">;
+export type FormationBadge = Tables<"formation_badges">;
+export type MemberBadge = Tables<"member_badges">;
 
 export type ChapterVerse = { number: number; text: string };
 export type ChapterPayload = {
