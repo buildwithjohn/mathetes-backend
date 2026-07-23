@@ -108,3 +108,8 @@ verify_jwt = true
 # verifies the active meeting + membership before signing a short-lived token.
 [functions.livekit-token]
 verify_jwt = true
+
+# Host-controlled Circle sermon/teaching recording. It checks active Circle
+# membership before any egress command or signed R2 playback URL is issued.
+[functions.manage-circle-recording]
+verify_jwt = true

@@ -89,6 +89,7 @@ export type FormationCampaignCompletion = Tables<"formation_campaign_completions
 export type FellowshipEvent = Tables<"fellowship_events">;
 export type FellowshipEventRsvp = Tables<"fellowship_event_rsvps">;
 export type CircleMeeting = Tables<"circle_meetings">;
+export type CircleRecording = Tables<"circle_recordings">;
 
 export type ChapterVerse = { number: number; text: string };
 export type ChapterPayload = {

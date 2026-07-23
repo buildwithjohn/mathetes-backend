@@ -43,7 +43,7 @@ migrations are applied **out-of-band by the operator**:
 - Every migration is **idempotent** (`create … if not exists`, `create or
   replace`, `drop policy if exists`, `on conflict do nothing`) — safe to re-run.
 
-**Repo HEAD: migration `0044`.** Prod is applied piecemeal; confirm what's live:
+**Repo HEAD: migration `0046`.** Prod is applied piecemeal; confirm what's live:
 ```sql
 select version, name from supabase_migrations.schema_migrations order by version;
 -- or, if the schema_migrations table isn't populated (applied via editor),
@@ -105,6 +105,8 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0042 | lagos_content_notifications | fixes scheduled content notification fan-out at the UTC/Lagos day boundary; backfills only today's missed devotional notification |
 | 0043 | message_notification_sender | message and announcement notifications identify the sender by display name (recipient already has chat access) |
 | 0044 | content_audio_uploads | accepts M4A/WebM browser MIME variants in the pastor/admin `content-media` narration bucket |
+| 0045 | circles_and_prayer_meetings | private student-created Circle chats, editable membership/photo/roles, and LiveKit audio/video prayer rooms |
+| 0046 | circle_recordings | host-controlled Circle teaching recordings, private R2 media, status/audit metadata, Circle-only RLS and realtime |
 
 ---
 
@@ -336,10 +338,24 @@ Operator / decision items (most code work through 0032 is done):
   SECURITY DEFINER RPCs validate active same-parish invitees; they do not widen
   a parish admin's ability to browse private DMs or Circle content.
 - `circle_meetings` is the invitation and permission record for ephemeral audio
-  or video prayer rooms. It contains no media and Mathetes does not enable
-  recording. `livekit-token` checks the caller is active, in the meeting's
+  or video prayer rooms. It contains no media. `livekit-token` checks the caller is active, in the meeting's
   parish, and an actual Circle member before returning a 15-minute, room-scoped
   LiveKit JWT. `LIVEKIT_API_SECRET` stays only in Supabase Edge secrets.
 - Circle photos live under `circle-images/<circle-id>/…`; only Circle owner or
   admin roles can write that folder. A live-meeting notification uses the
   existing `system` notification type and respects the member's mute setting.
+
+### 0046 Host-controlled Circle recordings
+
+- `circle_recordings` stores only recording state and audit metadata; media is
+  written by LiveKit Egress into the private `mathetes-recordings` Cloudflare R2
+  bucket. R2 credentials, the LiveKit API secret, and signed URL generation are
+  confined to `manage-circle-recording` Edge Function secrets.
+- Only active Circle `owner` / `admin` members may start or stop a recording.
+  Every caller (including playback) is re-checked for active same-parish Circle
+  membership. The function issues a fresh 15-minute signed R2 GET URL only for
+  `ready` files; direct bucket access is never provided to the app.
+- Recording is **opt-in and visible**: there is no automatic/covert capture.
+  On start and stop, unmuted Circle members receive a `system` notification;
+  the live app shows a red recording banner. A partial unique index prevents two
+  admins from creating simultaneous billable egress jobs for one meeting.

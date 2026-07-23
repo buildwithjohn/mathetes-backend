@@ -569,6 +569,95 @@ export type Database = {
           },
         ]
       }
+      circle_recordings: {
+        Row: {
+          chat_id: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_seconds: number | null
+          egress_id: string
+          failure_reason: string | null
+          id: string
+          media_kind: string
+          meeting_id: string
+          parish_id: string
+          ready_at: string | null
+          size_bytes: number | null
+          started_at: string
+          status: string
+          stopped_at: string | null
+          storage_key: string
+          title: string
+        }
+        Insert: {
+          chat_id: string
+          created_by?: string | null
+          deleted_at?: string | null
+          duration_seconds?: number | null
+          egress_id: string
+          failure_reason?: string | null
+          id?: string
+          media_kind: string
+          meeting_id: string
+          parish_id: string
+          ready_at?: string | null
+          size_bytes?: number | null
+          started_at?: string
+          status?: string
+          stopped_at?: string | null
+          storage_key: string
+          title: string
+        }
+        Update: {
+          chat_id?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          duration_seconds?: number | null
+          egress_id?: string
+          failure_reason?: string | null
+          id?: string
+          media_kind?: string
+          meeting_id?: string
+          parish_id?: string
+          ready_at?: string | null
+          size_bytes?: number | null
+          started_at?: string
+          status?: string
+          stopped_at?: string | null
+          storage_key?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_recordings_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_recordings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_recordings_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "circle_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_recordings_parish_id_fkey"
+            columns: ["parish_id"]
+            isOneToOne: false
+            referencedRelation: "parishes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_assets: {
         Row: {
           created_at: string
@@ -3335,8 +3424,8 @@ export type DonationKind = "one_time" | "recurring";
 export type DonationStatus = "pending" | "success" | "failed" | "abandoned" | "reversed";
 export type LibraryItemKind = "book" | "manual" | "audio" | "video";
 export type HighlightColor = "copper" | "gold" | "sage" | "oxblood" | "blue";
-export type ChatKind = "house_group" | "announcements" | "ask_pastor_thread" | "discipler" | "dm" | "parish_group";
-export type ChatMemberRole = "member" | "leader" | "pastor" | "discipler";
+export type ChatKind = "house_group" | "announcements" | "ask_pastor_thread" | "discipler" | "dm" | "parish_group" | "circle";
+export type ChatMemberRole = "member" | "leader" | "pastor" | "discipler" | "owner" | "admin";
 export type MessageKind = "text" | "voice" | "image" | "system" | "daily_prompt";
 export type ReactionEmoji = "🙏" | "❤️" | "amen" | "🔥" | "✋";
 export type AskPrivacy = "public" | "private";
@@ -3407,6 +3496,8 @@ export type FormationCampaign = Tables<"formation_campaigns">;
 export type FormationCampaignCompletion = Tables<"formation_campaign_completions">;
 export type FellowshipEvent = Tables<"fellowship_events">;
 export type FellowshipEventRsvp = Tables<"fellowship_event_rsvps">;
+export type CircleMeeting = Tables<"circle_meetings">;
+export type CircleRecording = Tables<"circle_recordings">;
 
 export type ChapterVerse = { number: number; text: string };
 export type ChapterPayload = {
