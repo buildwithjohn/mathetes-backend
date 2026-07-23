@@ -43,7 +43,7 @@ migrations are applied **out-of-band by the operator**:
 - Every migration is **idempotent** (`create … if not exists`, `create or
   replace`, `drop policy if exists`, `on conflict do nothing`) — safe to re-run.
 
-**Repo HEAD: migration `0041`.** Prod is applied piecemeal; confirm what's live:
+**Repo HEAD: migration `0042`.** Prod is applied piecemeal; confirm what's live:
 ```sql
 select version, name from supabase_migrations.schema_migrations order by version;
 -- or, if the schema_migrations table isn't populated (applied via editor),
@@ -102,6 +102,7 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0039 | member_deletions | durable service-role audit snapshots for intentional member-account deletions |
 | 0040 | notification_delivery | devotional + immediately-published Word notification fan-out; adds `devotional` notification type |
 | 0041 | push_webhook_delivery | secure, database-owned `notifications` → `send-push` pg_net delivery trigger (Vault/Edge shared secret) |
+| 0042 | lagos_content_notifications | fixes scheduled content notification fan-out at the UTC/Lagos day boundary; backfills only today's missed devotional notification |
 
 ---
 
@@ -190,7 +191,8 @@ app calls.)
 ### Triggers (not callable)
 `handle_new_user` (signup → profile + privacy, domain auto-approve, role always
 `member`), `guard_profile_protected_cols` (self-escalation guard),
-`set_updated_at`, `notify_on_message`/`notify_on_answer`/`notify_on_announcement`,
+`set_updated_at`, `notify_on_message`/`notify_on_answer`/`notify_on_announcement`/
+`notify_on_devotional`/`notify_on_word_of_day`,
 `sync_house_chat_membership`, `sync_discipler_chat`,
 `bible_verses_search_vector`, `bible_sync_verse_count`.
 
@@ -206,7 +208,7 @@ outside the migration chain by design — they depend on `pg_net`/`pg_cron`).
 |----------|---------|----------|
 | `send-push` | `trg_queue_push_delivery`: INSERT on `notifications` → secure `pg_net` call | Sends Expo push to recipient `push_tokens`, honours per-type pref, prunes dead tokens. Requires matching Edge `SEND_PUSH_WEBHOOK_SECRET` + Vault `mathetes_send_push_webhook` |
 | `moderate-message` | Webhook: INSERT on `messages` | OpenAI moderation; soft-deletes flagged messages, writes `moderation_log` |
-| `daily-content-publish` | Cron `1 0 * * *` | Publishes scheduled WOTD/devotionals; notifies parish of today's Word |
+| `daily-content-publish` | Cron `1 0 * * *` | Publishes scheduled WOTD/devotionals using the Africa/Lagos date; content triggers fan out both Word and devotional notifications |
 | `archive-term` | Cron daily | Soft-archives house/discipler/DM messages `ARCHIVE_AFTER_DAYS` after `TERM_END_DATE` (dry-run unless `ARCHIVE_CONFIRM=true`) |
 | `paystack-initialize` | User call (JWT) | **Body** `{ amount_kobo:int>0, kind:'one_time'\|'recurring', fund_id?, interval?, anonymous?, note?, callback_url? }`. Creates a PENDING `donation` (one-time) or a `giving_recurring` mandate + Paystack plan, calls Paystack `/transaction/initialize`. **Returns** `{ authorization_url, access_code, reference }` |
 | `paystack-webhook` | Paystack (no JWT) | Verifies `x-paystack-signature` (HMAC-SHA512); logs every event to `paystack_events`; records `charge.success` / `subscription.create` / `invoice.payment_failed` / `subscription.disable` idempotently |
