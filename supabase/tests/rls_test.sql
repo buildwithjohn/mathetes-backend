@@ -805,4 +805,42 @@ select public.t_assert(public.current_house_id() = :'zion_house', 'FORM11a: Zion
 select public.t_assert((select count(*) = 0 from public.formation_campaigns where id = :'quest'), 'FORM11: another house cannot see Berea quest');
 reset role;
 
+-- ===========================================================================
+-- 17. CIRCLES + PRAYER MEETINGS (0045): private membership and owner controls
+-- ===========================================================================
+select set_config('request.jwt.claim.sub', '0a000000-0000-0000-0000-000000000001', true); -- Ada
+set local role authenticated;
+select public.create_circle('Morning prayer', 'A small private prayer Circle.', array[:'bode'::uuid]) as circle \gset
+select public.t_assert((select count(*) = 1 from public.chats where id = :'circle' and kind = 'circle'), 'CIRCLE1: active member can create a private Circle');
+select public.t_assert((select role = 'owner' from public.chat_members where chat_id = :'circle' and user_id = :'ada'), 'CIRCLE2: creator is Circle owner');
+select public.t_assert((select count(*) = 1 from public.circle_meetings where false), 'CIRCLE2a: no meeting exists until an admin starts one');
+select public.create_circle_meeting(:'circle', 'audio', 'Morning prayer') as circle_meeting \gset
+select public.t_assert((select status = 'live' from public.circle_meetings where id = :'circle_meeting'), 'CIRCLE3: owner can start live audio prayer meeting');
+reset role;
+
+-- Invited Bode reads/posts and sees the live meeting, but cannot administer it.
+select set_config('request.jwt.claim.sub', '0b000000-0000-0000-0000-000000000002', true);
+set local role authenticated;
+select public.t_assert(public.can_read_chat(:'circle'), 'CIRCLE4: invited member can read private Circle');
+select public.t_assert(public.can_post_chat(:'circle'), 'CIRCLE5: invited member can post private Circle');
+select public.t_assert((select count(*) = 1 from public.circle_meetings where id = :'circle_meeting'), 'CIRCLE6: invited member can see live meeting record');
+do $$ declare v_circle uuid; begin
+  begin
+    select id into v_circle from public.chats where kind = 'circle' and title = 'Morning prayer';
+    perform public.add_circle_members(v_circle, array[(select id from public.user_profiles where auth_id = '0e000000-0000-0000-0000-000000000005')]);
+    perform public.t_assert(false, 'CIRCLE7 expected a non-admin block');
+  exception when others then
+    perform public.t_assert(sqlerrm like '%Circle admin required%', 'CIRCLE7: ordinary member cannot administer Circle');
+  end;
+end $$;
+reset role;
+
+-- Tope shares Ada/Bode's house but was not invited, so sees neither the Circle
+-- nor its meeting. This is the important no-discovery/no-social-browsing gate.
+select set_config('request.jwt.claim.sub', '0c000000-0000-0000-0000-000000000003', true);
+set local role authenticated;
+select public.t_assert(not public.can_read_chat(:'circle'), 'CIRCLE8: non-member cannot read private Circle');
+select public.t_assert((select count(*) = 0 from public.circle_meetings where id = :'circle_meeting'), 'CIRCLE9: non-member cannot see live meeting record');
+reset role;
+
 rollback;

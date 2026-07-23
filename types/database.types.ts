@@ -449,28 +449,40 @@ export type Database = {
           archived_at: string | null
           created_at: string
           created_by: string | null
+          description: string | null
           house_id: string | null
           id: string
+          image_url: string | null
           kind: string
+          max_members: number
           parish_id: string
+          title: string | null
         }
         Insert: {
           archived_at?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
           house_id?: string | null
           id?: string
+          image_url?: string | null
           kind: string
+          max_members?: number
           parish_id: string
+          title?: string | null
         }
         Update: {
           archived_at?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
           house_id?: string | null
           id?: string
+          image_url?: string | null
           kind?: string
+          max_members?: number
           parish_id?: string
+          title?: string | null
         }
         Relationships: [
           {
@@ -489,6 +501,67 @@ export type Database = {
           },
           {
             foreignKeyName: "chats_parish_id_fkey"
+            columns: ["parish_id"]
+            isOneToOne: false
+            referencedRelation: "parishes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      circle_meetings: {
+        Row: {
+          chat_id: string
+          created_by: string | null
+          ended_at: string | null
+          id: string
+          mode: string
+          parish_id: string
+          room_name: string
+          started_at: string
+          status: string
+          title: string
+        }
+        Insert: {
+          chat_id: string
+          created_by?: string | null
+          ended_at?: string | null
+          id?: string
+          mode: string
+          parish_id: string
+          room_name: string
+          started_at?: string
+          status?: string
+          title?: string
+        }
+        Update: {
+          chat_id?: string
+          created_by?: string | null
+          ended_at?: string | null
+          id?: string
+          mode?: string
+          parish_id?: string
+          room_name?: string
+          started_at?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_meetings_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_meetings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "circle_meetings_parish_id_fkey"
             columns: ["parish_id"]
             isOneToOne: false
             referencedRelation: "parishes"
@@ -2915,6 +2988,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_circle_members: {
+        Args: { p_chat: string; p_member_ids: string[] }
+        Returns: undefined
+      }
       answer_question: {
         Args: { p_id: string; p_public?: boolean; p_response: string }
         Returns: {
@@ -2943,6 +3020,8 @@ export type Database = {
         Args: { p_campus: string; p_user: string }
         Returns: undefined
       }
+      archive_circle: { Args: { p_chat: string }; Returns: undefined }
+      can_manage_circle_image: { Args: { p_path: string }; Returns: boolean }
       can_post_chat: { Args: { p_chat: string }; Returns: boolean }
       can_read_chat: { Args: { p_chat: string }; Returns: boolean }
       can_read_fellowship_event: { Args: { p_event: string }; Returns: boolean }
@@ -2957,6 +3036,18 @@ export type Database = {
           p_reflection_response?: string
           p_share_with_discipler?: boolean
         }
+        Returns: string
+      }
+      create_circle: {
+        Args: {
+          p_description?: string
+          p_member_ids?: string[]
+          p_title: string
+        }
+        Returns: string
+      }
+      create_circle_meeting: {
+        Args: { p_chat: string; p_mode: string; p_title?: string }
         Returns: string
       }
       create_dm: { Args: { p_other: string }; Returns: string }
@@ -2975,6 +3066,7 @@ export type Database = {
       current_parish_id: { Args: never; Returns: string }
       current_profile_id: { Args: never; Returns: string }
       current_user_role: { Args: never; Returns: string }
+      end_circle_meeting: { Args: { p_meeting: string }; Returns: undefined }
       get_chapter: {
         Args: {
           book_abbrev: string
@@ -2987,12 +3079,14 @@ export type Database = {
       is_blocked_by_me: { Args: { p_target: string }; Returns: boolean }
       is_chat_leader: { Args: { p_chat: string }; Returns: boolean }
       is_chat_member: { Args: { p_chat: string }; Returns: boolean }
+      is_circle_admin: { Args: { p_chat: string }; Returns: boolean }
       is_discipler_for_subscription: {
         Args: { p_sub: string }
         Returns: boolean
       }
       is_owner: { Args: never; Returns: boolean }
       is_parish_admin: { Args: never; Returns: boolean }
+      leave_circle: { Args: { p_chat: string }; Returns: undefined }
       list_pending_members: {
         Args: never
         Returns: {
@@ -3042,6 +3136,10 @@ export type Database = {
         Returns: undefined
       }
       reject_member: { Args: { p_user: string }; Returns: undefined }
+      remove_circle_member: {
+        Args: { p_chat: string; p_member: string }
+        Returns: undefined
+      }
       resolve_report: {
         Args: { p_report: string; p_status: string }
         Returns: undefined
@@ -3058,11 +3156,29 @@ export type Database = {
           verse_id: string
         }[]
       }
+      set_circle_member_role: {
+        Args: { p_chat: string; p_member: string; p_role: string }
+        Returns: undefined
+      }
       set_my_campus: { Args: { p_campus: string }; Returns: undefined }
       subscribe_to_plan: { Args: { p_plan_id: string }; Returns: string }
       toggle_plan_pause: {
         Args: { p_subscription_id: string }
         Returns: boolean
+      }
+      transfer_circle_ownership: {
+        Args: { p_chat: string; p_new_owner: string }
+        Returns: undefined
+      }
+      update_circle: {
+        Args: {
+          p_chat: string
+          p_clear_image?: boolean
+          p_description?: string
+          p_image_url?: string
+          p_title?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

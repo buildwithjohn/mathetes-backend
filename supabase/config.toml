@@ -103,3 +103,8 @@ verify_jwt = false
 
 [functions.paystack-manage-recurring]
 verify_jwt = true
+
+# Prayer-room tokens are issued to signed-in Circle members. The function also
+# verifies the active meeting + membership before signing a short-lived token.
+[functions.livekit-token]
+verify_jwt = true

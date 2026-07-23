@@ -327,3 +327,19 @@ Operator / decision items (most code work through 0032 is done):
   (23:01 UTC) every day. This is an operator script rather than a normal
   migration because pg_cron/pg_net are managed Supabase extensions and are not
   available in the lightweight local RLS test database.
+
+### 0045 Circles and private prayer meetings
+
+- **Circles** are private, student-created parish groups implemented on the
+  existing `chats` + `chat_members` contract (`kind='circle'`), with editable
+  title/description/photo and explicit `owner` / `admin` member roles. The
+  SECURITY DEFINER RPCs validate active same-parish invitees; they do not widen
+  a parish admin's ability to browse private DMs or Circle content.
+- `circle_meetings` is the invitation and permission record for ephemeral audio
+  or video prayer rooms. It contains no media and Mathetes does not enable
+  recording. `livekit-token` checks the caller is active, in the meeting's
+  parish, and an actual Circle member before returning a 15-minute, room-scoped
+  LiveKit JWT. `LIVEKIT_API_SECRET` stays only in Supabase Edge secrets.
+- Circle photos live under `circle-images/<circle-id>/…`; only Circle owner or
+  admin roles can write that folder. A live-meeting notification uses the
+  existing `system` notification type and respects the member's mute setting.
