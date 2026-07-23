@@ -292,6 +292,7 @@ reset role;
 -- ===========================================================================
 select public.t_assert((select count(*) = 3 from public.notifications where type = 'message' and target_id = :'hchat'), 'Notify: house message notified 3 members (author excluded)');
 select public.t_assert((select count(*) = 0 from public.notifications where type = 'message' and user_id = :'bode' and target_id = :'hchat'), 'Notify: author Bode not notified of his own house message');
+select public.t_assert((select count(*) = 3 from public.notifications where type = 'message' and target_id = :'hchat' and title = 'Bode'), 'Notify: message notification identifies the sender');
 select public.t_assert((select count(*) = 1 from public.notifications where type = 'ask_answered' and user_id = :'ada'), 'Notify: asker Ada notified of answer');
 
 -- ===========================================================================

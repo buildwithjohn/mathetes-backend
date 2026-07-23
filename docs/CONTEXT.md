@@ -43,7 +43,7 @@ migrations are applied **out-of-band by the operator**:
 - Every migration is **idempotent** (`create … if not exists`, `create or
   replace`, `drop policy if exists`, `on conflict do nothing`) — safe to re-run.
 
-**Repo HEAD: migration `0042`.** Prod is applied piecemeal; confirm what's live:
+**Repo HEAD: migration `0044`.** Prod is applied piecemeal; confirm what's live:
 ```sql
 select version, name from supabase_migrations.schema_migrations order by version;
 -- or, if the schema_migrations table isn't populated (applied via editor),
@@ -103,6 +103,8 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0040 | notification_delivery | devotional + immediately-published Word notification fan-out; adds `devotional` notification type |
 | 0041 | push_webhook_delivery | secure, database-owned `notifications` → `send-push` pg_net delivery trigger (Vault/Edge shared secret) |
 | 0042 | lagos_content_notifications | fixes scheduled content notification fan-out at the UTC/Lagos day boundary; backfills only today's missed devotional notification |
+| 0043 | message_notification_sender | message and announcement notifications identify the sender by display name (recipient already has chat access) |
+| 0044 | content_audio_uploads | accepts M4A/WebM browser MIME variants in the pastor/admin `content-media` narration bucket |
 
 ---
 
@@ -237,7 +239,7 @@ verify on cloud, see `data-model.md` §Realtime): `messages`, `message_reactions
 | `devotional-images` | pastor/admin | devotional/WOTD images |
 | `verse-images` | own folder | generated verse images |
 | `chat-media` | own folder (`<auth.uid>/…`) | message images / voice notes |
-| `content-media` | pastor/admin | devotional audio/video **and** Library files (PDF/audio/video/covers); 512 MB limit, MIME-restricted (0031) |
+| `content-media` | pastor/admin | devotional audio/video **and** Library files (PDF/audio/video/covers); 512 MB limit, MIME-restricted (0031; M4A/WebM variants in 0044) |
 
 ---
 
@@ -311,7 +313,9 @@ Operator / decision items (most code work through 0032 is done):
   scheduled for today/past are promoted immediately by a database trigger.
 - Devotional saves persist in `devotional_bookmarks` and are private to the
   member under RLS.
-- Message inserts already create `notifications` rows. Remote delivery still
+- Message inserts already create `notifications` rows; the notification title is
+  the sender's display name (0043) so both the in-app inbox and push alert make
+  clear who wrote. Remote delivery still
   requires the production Database Webhook (`notifications` INSERT →
   `send-push`) and Expo/FCM credentials. `send-push` uses `target_url`, matching
   mobile deep-link handling, and Android high-priority delivery.
