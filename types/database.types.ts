@@ -2660,6 +2660,7 @@ export type Database = {
       user_profiles: {
         Row: {
           auth_id: string
+          bio: string | null
           campus_id: string | null
           date_of_birth: string | null
           dept: string | null
@@ -2677,10 +2678,13 @@ export type Database = {
           pinned_verse_ref: string | null
           role: string
           status: string
+          thought: string | null
+          thought_updated_at: string | null
           year: string | null
         }
         Insert: {
           auth_id: string
+          bio?: string | null
           campus_id?: string | null
           date_of_birth?: string | null
           dept?: string | null
@@ -2698,10 +2702,13 @@ export type Database = {
           pinned_verse_ref?: string | null
           role?: string
           status?: string
+          thought?: string | null
+          thought_updated_at?: string | null
           year?: string | null
         }
         Update: {
           auth_id?: string
+          bio?: string | null
           campus_id?: string | null
           date_of_birth?: string | null
           dept?: string | null
@@ -2719,6 +2726,8 @@ export type Database = {
           pinned_verse_ref?: string | null
           role?: string
           status?: string
+          thought?: string | null
+          thought_updated_at?: string | null
           year?: string | null
         }
         Relationships: [

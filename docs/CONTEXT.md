@@ -107,6 +107,7 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0044 | content_audio_uploads | accepts M4A/WebM browser MIME variants in the pastor/admin `content-media` narration bucket |
 | 0045 | circles_and_prayer_meetings | private student-created Circle chats, editable membership/photo/roles, and LiveKit audio/video prayer rooms |
 | 0046 | circle_recordings | host-controlled Circle teaching recordings, private R2 media, status/audit metadata, Circle-only RLS and realtime |
+| 0047 | member_profile_presence | optional member bio and current thought, constrained to existing active-parish profile visibility |
 
 ---
 
@@ -359,3 +360,11 @@ Operator / decision items (most code work through 0032 is done):
   On start and stop, unmuted Circle members receive a `system` notification;
   the live app shows a red recording banner. A partial unique index prevents two
   admins from creating simultaneous billable egress jobs for one meeting.
+
+### 0047 Member profile presence
+
+- `user_profiles.bio` (280 characters) and `user_profiles.thought` (180
+  characters) give an active parish member a small, human profile. They inherit
+  the existing `user_profiles` RLS rule—there is no public profile, follower
+  graph, or activity feed. `thought_updated_at` records when a current thought
+  was last changed.
