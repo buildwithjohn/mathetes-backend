@@ -3319,6 +3319,10 @@ export type Database = {
         Args: { p_chat: string; p_member_ids: string[] }
         Returns: undefined
       }
+      assign_house_members: {
+        Args: { p_house: string; p_member_ids: string[] }
+        Returns: undefined
+      }
       answer_question: {
         Args: { p_id: string; p_public?: boolean; p_response: string }
         Returns: {

@@ -111,6 +111,7 @@ guardrail assertions), `./scripts/test-kjv.sh`, `./scripts/test-bible.sh`. CI
 | 0048 | content_signals | parish-visible live Amen/share totals for published daily Word and devotionals; each member contributes once, identities remain private, no rankings |
 | 0049 | saved_daily_content | durable Word bookmarks and private devotional reflections, both restricted to the member and already-visible parish content |
 | 0050 | formation_badges | private, idempotent formation milestones awarded from activity logging; no public scores, leaderboards, or member-to-member visibility |
+| 0052 | group_stewardship | global owner may steward same-parish shared House/parish groups and Circles (never DMs/discipler/Ask-Pastor); canonical `assign_house_members` RPC for House roster management |
 
 ---
 
